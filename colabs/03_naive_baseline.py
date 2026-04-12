@@ -25,7 +25,7 @@ from agent_base import Agent, MatchContext, MatchResult, WorldContext, Position
 from agent_server import serve_and_register
 
 OPENAI_API_KEY = "sk-..."
-ARENA_URL      = "http://AZURE_VM_IP:8000"
+ARENA_URL      = "https://agent-coliseum.onrender.com"
 NGROK_TOKEN    = "your_ngrok_token"
 
 client = OpenAI(api_key=OPENAI_API_KEY)
