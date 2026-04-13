@@ -124,6 +124,10 @@ input.inp:focus{border-color:#58a6ff}
 <div id="ctrl-panel">
   <span id="ctrl-title">TOURNAMENT</span>
 
+  <button class="btn btn-gray" onclick="resetArena()" title="Reset to LOBBY — clears all agents">
+    🔁 Reset
+  </button>
+
   <button class="btn btn-green" onclick="startTournament()">
     🚀 Start Tournament
   </button>
@@ -133,6 +137,16 @@ input.inp:focus{border-color:#58a6ff}
   <button class="btn btn-gray" onclick="refreshAgents()">
     🔄 Refresh
   </button>
+
+  <button id="pause-btn" class="btn btn-orange" onclick="togglePause()">
+    ⏸ Pause
+  </button>
+
+  <button class="btn btn-blue" onclick="replayLast()" title="Replay last 50 events on the visualizer">
+    ⏮ Replay Last Match
+  </button>
+
+  <div class="ctrl-separator"></div>
 
   <button class="btn btn-orange" onclick="confirmEnd()">
     ⏹ End Tournament
@@ -330,6 +344,22 @@ async function eliminateAgent(id, name) {
   } catch (err) { log('Eliminate failed: ' + err.message, 'err'); }
 }
 
+async function resetArena() {
+  if (!confirm('Reset arena to LOBBY? This clears all agents and scores.')) return;
+  try {
+    await api('POST', '/admin/reset');
+    log('Arena RESET to LOBBY', 'ok');
+    setPhase('lobby');
+    document.getElementById('pending-list').innerHTML = '<div class="empty">No pending agents</div>';
+    document.getElementById('active-list').innerHTML  = '<div class="empty">No agents yet</div>';
+    document.getElementById('pending-count').textContent = '0';
+    document.getElementById('active-count').textContent  = '0';
+    document.getElementById('pause-btn').textContent = '⏸ Pause';
+    document.getElementById('pause-btn').className   = 'btn btn-orange';
+    _paused = false;
+  } catch (err) { log('Reset failed: ' + err.message, 'err'); }
+}
+
 async function startTournament() {
   if (!confirm('Start the tournament? This will transition LOBBY → ROAMING and begin the roaming loop.')) return;
   try {
@@ -422,6 +452,53 @@ if (ARENA_URL && ADMIN_TOKEN) {
 
 // Auto-refresh every 15s
 setInterval(() => { if (ARENA_URL && ADMIN_TOKEN) refreshAgents(); }, 15000);
+
+// ── Pause / Resume ────────────────────────────────────────────────────────
+let _paused = false;
+
+async function togglePause() {
+  const btn = document.getElementById('pause-btn');
+  try {
+    if (!_paused) {
+      await api('POST', '/admin/pause');
+      _paused = true;
+      btn.textContent = '▶ Resume';
+      btn.className = 'btn btn-green';
+      log('Tournament PAUSED', 'warn');
+    } else {
+      await api('POST', '/admin/resume');
+      _paused = false;
+      btn.textContent = '⏸ Pause';
+      btn.className = 'btn btn-orange';
+      log('Tournament RESUMED', 'ok');
+    }
+  } catch (err) { log('Pause/Resume failed: ' + err.message, 'err'); }
+}
+
+// ── Replay ────────────────────────────────────────────────────────────────
+async function replayLast() {
+  try {
+    const data = await api('GET', '/admin/replay?last_n=100');
+    const events = data.events || [];
+    if (!events.length) { log('No events to replay', 'warn'); return; }
+
+    log(`Replaying ${events.length} events on visualizer...`, 'ok');
+
+    // Open visualizer in new tab and post events via BroadcastChannel
+    const ch = new BroadcastChannel('coliseum_replay');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= events.length) {
+        clearInterval(interval);
+        ch.close();
+        log('Replay complete', 'ok');
+        return;
+      }
+      ch.postMessage(events[i]);
+      i++;
+    }, 300);  // 300ms between events for readability
+  } catch (err) { log('Replay failed: ' + err.message, 'err'); }
+}
 </script>
 </body>
 </html>

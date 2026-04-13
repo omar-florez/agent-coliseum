@@ -34,6 +34,8 @@ class Arena:
         self._cooldowns: dict[str, float]    = {}       # agent_id → timestamp
         self._subscribers: list              = []       # SSE queues
         self._roaming_task                   = None     # cancellable task ref
+        self._event_log:  list               = []       # replay log (Option A)
+        self._paused:     bool               = False    # pause flag
 
         judge        = Judge(
                              azure_endpoint   = config.azure_openai_endpoint,
@@ -47,8 +49,12 @@ class Arena:
     # ── SSE pub/sub ───────────────────────────────────────────────────────────
 
     async def broadcast(self, event_type: str, payload: dict):
+        event = {"type": event_type, "payload": payload}
+        self._event_log.append(event)
+        if len(self._event_log) > 500:
+            self._event_log.pop(0)
         for q in list(self._subscribers):
-            await q.put({"type": event_type, "payload": payload})
+            await q.put(event)
 
     def subscribe(self) -> asyncio.Queue:
         q = asyncio.Queue()
@@ -133,6 +139,31 @@ class Arena:
             } if winner else None,
             "leaderboard": self._leaderboard_payload(),
         })
+
+    async def reset(self):
+        """Reset arena to LOBBY — clears all agents, matches, logs."""
+        if self._roaming_task and not self._roaming_task.done():
+            self._roaming_task.cancel()
+        self.phase           = ArenaPhase.LOBBY
+        self.agents          = {}
+        self._active_matches = set()
+        self._cooldowns      = {}
+        self._event_log      = []
+        self._paused         = False
+        self._roaming_task   = None
+        await self.broadcast('reset', {'phase': 'lobby'})
+
+    async def pause(self):
+
+        self._paused = True
+        await self.broadcast('paused', {'phase': self.phase})
+
+    async def resume(self):
+        self._paused = False
+        await self.broadcast('resumed', {'phase': self.phase})
+
+    def get_replay_log(self, last_n: int = 50) -> list:
+        return self._event_log[-last_n:]
 
     # ── Roaming loop ──────────────────────────────────────────────────────────
 
