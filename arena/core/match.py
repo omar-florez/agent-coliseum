@@ -74,7 +74,7 @@ class MatchRunner:
                 "question":    question,
                 "scratchpad":  scratchpad_ask,
             })
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(0.5)
 
             # ── Answerer: think → answer ─────────────────────────────────────
             await on_event("thinking", {
@@ -100,7 +100,7 @@ class MatchRunner:
                 "answer":         answer,
                 "scratchpad":     scratchpad_ans,
             })
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(0.5)
 
             # ── Judge ────────────────────────────────────────────────────────
             score, reason = self.judge.score(topic, question, answer)
@@ -126,7 +126,7 @@ class MatchRunner:
                 "reason":       reason,
                 "running_scores": scores,
             })
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(0.8)
 
         # ── Determine winner ─────────────────────────────────────────────────
         winner_id = max(scores, key=scores.get)
