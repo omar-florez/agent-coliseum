@@ -37,7 +37,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 #game-wrap canvas{display:block}
 
 /* ── match panel ── */
-#match-panel{flex:1;background:#161b22;border-left:1px solid #30363d;padding:14px 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-width:360px;max-width:520px}
+#match-panel{flex:1;background:#161b22;border-left:1px solid #30363d;padding:14px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;min-width:380px;max-width:560px}
 #match-header{flex-shrink:0}
 #match-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#484f58;text-transform:uppercase;margin-bottom:4px}
 #match-topic{font-size:14px;font-weight:700;color:#e6edf3;margin-bottom:3px;line-height:1.4}
@@ -50,11 +50,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 #no-match .sub{font-size:12px;line-height:1.6}
 
 /* ── turn cards ── */
-.turn-card{border-radius:6px;padding:9px 11px;border-left:3px solid;margin-bottom:0;animation:slideIn .25s ease}
+.turn-card{border-radius:10px;padding:13px 15px;border-left:4px solid;margin-bottom:4px;animation:slideIn .25s ease;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.card-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
-.card-agent{font-size:10px;color:#8b949e;margin-bottom:5px}
-.card-text{font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:160px;overflow-y:auto}
+.card-label{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.card-agent{display:inline-flex;align-items:center;gap:6px;margin-bottom:8px}
+.card-agent .agent-name-badge{font-size:11px;font-weight:700;color:#e6edf3;background:#30363d;border-radius:5px;padding:2px 8px;letter-spacing:.3px}
+.card-agent .turn-badge{font-size:10px;color:#484f58}
+.card-text{font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto}
 
 .card-think   {background:#1a0d33;border-color:#9B8EC4}
 .card-think   .card-label{color:#9B8EC4}
@@ -62,8 +64,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .card-question .card-label{color:#E8A838}
 .card-answer  {background:#001c1c;border-color:#4ABFBF}
 .card-answer  .card-label{color:#4ABFBF}
-.card-score   {background:#1a1400;border-color:#F5C518}
-.card-score   .card-label{color:#F5C518}
+.card-score   {background:#2a1f00;border-color:#F5C518;border-left-width:5px}
+.card-score   .card-label{color:#F5C518;font-size:12px}
 
 /* ── leaderboard ── */
 #leaderboard{background:#0d1117;border-top:1px solid #21262d;padding:10px 20px;flex-shrink:0}
@@ -604,7 +606,7 @@ function addCard(type, label, agent, turn, text) {
   div.dataset.type = type;
   div.innerHTML = `
     <div class="card-label">${label}</div>
-    <div class="card-agent">${esc(agent)} · ${esc(turn)}</div>
+    <div class="card-agent"><span class="agent-name-badge">${esc(agent)}</span><span class="turn-badge">${esc(turn)}</span></div>
     <div class="card-text">${esc(text)}</div>`;
   cards.appendChild(div);
   // All turns kept for post-match analysis
