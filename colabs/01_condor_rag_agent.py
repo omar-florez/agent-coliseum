@@ -23,6 +23,9 @@ from openai import OpenAI
 # Copy agent_base.py and agent_server.py here or upload them
 # For the talk: they are pre-installed in the Colab environment
 from agent_base import Agent, MatchContext, MatchResult, WorldContext, Position
+
+from pyngrok import ngrok
+ngrok.kill()  # kills all existing tunnels on this account
 from agent_server import serve_and_register
 
 # ── CELL 3: Config ───────────────────────────────────────────
@@ -239,14 +242,14 @@ CRITIQUE: <evaluate draft quality, identify gaps>
 #  to maintain an episodic memory buffer."
 # → Write the final polished question (1 sentence) or answer (1-2 sentences).
 
-FINAL: <final question or answer only>
+FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 """
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=500,
+            max_tokens=250,
         )
         return response.choices[0].message.content.strip()
 
