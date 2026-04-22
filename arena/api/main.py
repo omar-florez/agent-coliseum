@@ -21,23 +21,26 @@ config = ArenaConfig(
     max_simultaneous_matches = int(os.getenv("MAX_SIMULTANEOUS_MATCHES", "3")),
     map_width                = int(os.getenv("MAP_WIDTH",                "20")),
     map_height               = int(os.getenv("MAP_HEIGHT",               "15")),
-    turns_per_match          = int(os.getenv("TURNS_PER_MATCH",          "5")),
+    turns_per_match          = int(os.getenv("TURNS_PER_MATCH",          "3")),
     cooldown_seconds         = int(os.getenv("COOLDOWN_SECONDS",         "30")),
-    admin_token              = os.getenv("ARENA_ADMIN_TOKEN",    "changeme"),
+    admin_token              = os.getenv("ARENA_ADMIN_TOKEN",            "changeme"),
+    # Azure OpenAI (takes priority if both are set)
     azure_openai_endpoint    = os.getenv("AZURE_OPENAI_ENDPOINT",        ""),
     azure_openai_key         = os.getenv("AZURE_OPENAI_KEY",             ""),
     azure_openai_deployment  = os.getenv("AZURE_OPENAI_DEPLOYMENT",      "gpt-4o"),
+    # OpenAI or Azure Foundry
     openai_key               = os.getenv("OPENAI_API_KEY",               ""),
     openai_model             = os.getenv("OPENAI_MODEL",                 "gpt-4o-mini"),
+    openai_base_url          = os.getenv("OPENAI_BASE_URL",              ""),
 )
 
 arena = Arena(config)
 
-app = FastAPI(title="LatAm Arena", version="1.0.0")
+app = FastAPI(title="Agent Coliseum", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten to omar-florez.github.io after testing
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -84,7 +87,6 @@ async def register(payload: RegisterPayload):
         description=payload.description,
         endpoint=payload.endpoint,
     )
-    # Notify admin subscribers
     await arena.broadcast("agent_pending", {
         "agent_id":    agent_id,
         "name":        payload.name,
@@ -101,14 +103,11 @@ async def register(payload: RegisterPayload):
 
 @app.get("/stream")
 async def stream(request: Request):
-    """SSE endpoint consumed by the Phaser visualizer."""
     queue = arena.subscribe()
 
     async def generate():
-        # Send full current state immediately on connect
         snapshot = {"type": "state", "payload": arena.full_state_payload()}
         yield f"data: {json.dumps(snapshot)}\n\n"
-
         try:
             while True:
                 if await request.is_disconnected():
@@ -164,10 +163,17 @@ def admin_reject(agent_id: str):
     return {"status": "rejected", "agent_id": agent_id}
 
 
+@app.post("/admin/reset", dependencies=[Depends(require_admin)])
+async def admin_reset():
+    await arena.reset()
+    return {"status": "reset"}
+
+
 @app.post("/admin/start", dependencies=[Depends(require_admin)])
 async def admin_start():
     if arena.phase != ArenaPhase.LOBBY:
-        raise HTTPException(status_code=400, detail=f"Tournament is already in phase: {arena.phase}. Call /admin/reset first.")
+        raise HTTPException(status_code=400,
+            detail=f"Tournament is in phase: {arena.phase}. Call /admin/reset first.")
     await arena.start_tournament()
     return {"status": "started"}
 
@@ -184,12 +190,6 @@ async def admin_eliminate(agent_id: str):
 async def admin_end():
     await arena.end_tournament()
     return {"status": "ended"}
-
-
-@app.post("/admin/reset", dependencies=[Depends(require_admin)])
-async def admin_reset():
-    await arena.reset()
-    return {"status": "reset"}
 
 
 @app.post("/admin/pause", dependencies=[Depends(require_admin)])
@@ -211,7 +211,6 @@ async def admin_replay(last_n: int = 50):
 
 @app.post("/admin/shutdown", dependencies=[Depends(require_admin)])
 async def admin_shutdown():
-    """Graceful VM shutdown — only call after the event."""
     subprocess.Popen(["sudo", "shutdown", "now"])
     return {"status": "shutting_down"}
 

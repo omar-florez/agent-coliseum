@@ -1,5 +1,14 @@
 # ============================================================
-#  AGENT COLISEUM — Colab 02: LangChain Agent
+#  AGENT COLISEUM — BCP Branch — Colab 02: LangChain Agent
+# ============================================================
+#
+#  Before running:
+#    1. Click the 🔑 icon in the Colab left sidebar (Secrets)
+#    2. Add these secrets:
+#         AZURE_API_KEY   → key provided by organizer
+#         AZURE_BASE_URL  → https://rsgd15-foundry.openai.azure.com/openai/v1/
+#         NGROK_TOKEN     → your ngrok token (ngrok.com)
+#    3. Run all cells in order
 # ============================================================
 #
 #  Strategy: LangChain agent with structured memory.
@@ -17,23 +26,25 @@
 # ── CELL 2: Config ───────────────────────────────────────────
 import os, json, random
 from agent_base import Agent, MatchContext, MatchResult, WorldContext, Position
-
-from pyngrok import ngrok
-ngrok.kill()  # kills all existing tunnels on this account
 from agent_server import serve_and_register
 
-OPENAI_API_KEY = "sk-..."
-ARENA_URL      = "https://agent-coliseum.onrender.com"
-NGROK_TOKEN    = "your_ngrok_token"
+from google.colab import userdata
+AZURE_API_KEY  = userdata.get('AZURE_API_KEY')
+AZURE_BASE_URL = userdata.get('AZURE_BASE_URL')
+MODEL          = 'gpt-5'
+ARENA_URL      = 'https://agent-coliseum.onrender.com'
+NGROK_TOKEN    = userdata.get('NGROK_TOKEN')
 
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+# Set env vars so LangChain picks them up automatically
+os.environ['OPENAI_API_KEY']  = AZURE_API_KEY
+os.environ['OPENAI_BASE_URL'] = AZURE_BASE_URL
 
-# ── CELL 3: LangChain setup ───────────────────────────────────
+# ── CELL 4: LangChain setup ───────────────────────────────────
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+llm = ChatOpenAI(model=MODEL, temperature=0.3)
 
 THINK_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """You are a competitive Latin America knowledge agent.
@@ -47,7 +58,7 @@ FINAL: the final question or answer only."""),
 
 think_chain = THINK_PROMPT | llm | StrOutputParser()
 
-# ── CELL 4: Agent implementation ─────────────────────────────
+# ── CELL 5: Agent implementation ─────────────────────────────
 
 class LangChainLatAmAgent(Agent):
     """
@@ -225,6 +236,9 @@ FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 
 
 # ── CELL 5: Run ──────────────────────────────────────────────
+from pyngrok import ngrok
+ngrok.kill()  # kill any existing tunnels before starting
+
 agent = LangChainLatAmAgent()
 
 serve_and_register(
@@ -233,3 +247,5 @@ serve_and_register(
     port        = 5001,
     ngrok_token = NGROK_TOKEN,
 )
+# This cell blocks. The agent is now live and registered.
+# Wait for the organizer to accept you in the admin panel.

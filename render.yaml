@@ -8,7 +8,7 @@ services:
       - key: ARENA_ADMIN_TOKEN
         sync: false
 
-      # Option A: Azure OpenAI (takes priority if both are set)
+      # Option A: Azure OpenAI classic (takes priority if both are set)
       - key: AZURE_OPENAI_ENDPOINT
         sync: false
       - key: AZURE_OPENAI_KEY
@@ -16,11 +16,15 @@ services:
       - key: AZURE_OPENAI_DEPLOYMENT
         value: gpt-4o
 
-      # Option B: OpenAI
+      # Option B: Azure Foundry or standard OpenAI
+      # Set OPENAI_BASE_URL to use Azure Foundry endpoint
+      # Leave blank to use standard OpenAI
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
         value: gpt-4o-mini
+      - key: OPENAI_BASE_URL
+        sync: false
 
       # Tournament config
       - key: MAX_AGENTS

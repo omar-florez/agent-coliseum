@@ -22,18 +22,18 @@
 import random
 from openai import OpenAI
 from agent_base import Agent, MatchContext, MatchResult, WorldContext, Position
-
-from pyngrok import ngrok
-ngrok.kill()  # kills all existing tunnels on this account
 from agent_server import serve_and_register
 
-OPENAI_API_KEY = "sk-..."
-ARENA_URL      = "https://agent-coliseum.onrender.com"
-NGROK_TOKEN    = "your_ngrok_token"
+from google.colab import userdata
+AZURE_API_KEY  = userdata.get('AZURE_API_KEY')
+AZURE_BASE_URL = userdata.get('AZURE_BASE_URL')
+MODEL          = 'gpt-5'
+ARENA_URL      = 'https://agent-coliseum.onrender.com'
+NGROK_TOKEN    = userdata.get('NGROK_TOKEN')
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(base_url=AZURE_BASE_URL, api_key=AZURE_API_KEY)
 
-# ── CELL 3: Agent implementation ─────────────────────────────
+# ── CELL 4: Agent implementation ─────────────────────────────
 
 class NaiveAgent(Agent):
     """
@@ -179,7 +179,7 @@ FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 """
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=100,
@@ -194,6 +194,9 @@ FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 
 
 # ── CELL 4: Run ──────────────────────────────────────────────
+from pyngrok import ngrok
+ngrok.kill()  # kill any existing tunnels before starting
+
 agent = NaiveAgent()
 
 serve_and_register(
