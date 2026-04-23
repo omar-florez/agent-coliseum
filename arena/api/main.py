@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from ..core.models import ArenaConfig
+from ..core.models import ArenaConfig, ArenaPhase
 from ..core.state_machine import Arena
 
 # ── Config from environment ───────────────────────────────────────────────────
@@ -166,7 +166,7 @@ def admin_reject(agent_id: str):
 
 @app.post("/admin/start", dependencies=[Depends(require_admin)])
 async def admin_start():
-    if arena.phase not in ("lobby", ArenaPhase.LOBBY):
+    if arena.phase != ArenaPhase.LOBBY:
         raise HTTPException(status_code=400, detail=f"Tournament is already in phase: {arena.phase}. Call /admin/reset first.")
     await arena.start_tournament()
     return {"status": "started"}
