@@ -33,10 +33,15 @@ class Arena:
         self._active_matches: set[str]       = set()   # agent_ids in a match
         self._cooldowns: dict[str, float]    = {}       # agent_id → timestamp
         self._subscribers: list              = []       # SSE queues
+        self._roaming_task                   = None     # cancellable task ref
 
-        judge        = Judge(config.azure_openai_endpoint,
-                             config.azure_openai_key,
-                             config.azure_openai_deployment)
+        judge        = Judge(
+                             azure_endpoint   = config.azure_openai_endpoint,
+                             azure_key        = config.azure_openai_key,
+                             azure_deployment = config.azure_openai_deployment,
+                             openai_key       = config.openai_key,
+                             openai_model     = config.openai_model,
+                         )
         self.runner  = MatchRunner(judge, config)
 
     # ── SSE pub/sub ───────────────────────────────────────────────────────────
@@ -110,10 +115,13 @@ class Arena:
     async def start_tournament(self):
         self.phase = ArenaPhase.ROAMING
         await self.broadcast("phase_change", {"phase": "roaming"})
-        asyncio.create_task(self._roaming_loop())
+        self._roaming_task = asyncio.create_task(self._roaming_loop())
 
     async def end_tournament(self):
         self.phase = ArenaPhase.ENDED
+        # Cancel the roaming loop immediately
+        if self._roaming_task and not self._roaming_task.done():
+            self._roaming_task.cancel()
         active = self._active_agents()
         winner = max(active, key=lambda a: a.score) if active else None
         await self.broadcast("tournament_ended", {
@@ -146,9 +154,15 @@ class Arena:
                 self.phase = ArenaPhase.FINALS
                 await self.broadcast("phase_change", {"phase": "finals"})
 
-            # Move every active agent one step
+            # Stop immediately if phase changed
+            if self.phase not in (ArenaPhase.ROAMING, ArenaPhase.FINALS):
+                return
+
+            # Move every active agent toward closest opponent
             for agent in active:
-                new_pos = self._step(agent.position)
+                if agent.agent_id in self._active_matches:
+                    continue   # skip agents already in a match
+                new_pos = self._step_toward(agent, active)
                 agent.position = new_pos
                 await self.broadcast("agent_moved", {
                     "agent_id": agent.agent_id,
@@ -210,11 +224,35 @@ class Arena:
             y=random.randint(1, self.config.map_height - 2),
         )
 
-    def _step(self, pos: Position) -> Position:
-        dx, dy = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)])
+    def _step_toward(self, agent: AgentInfo, others: list) -> Position:
+        """Move one tile toward the closest other active agent."""
+        others = [a for a in others if a.agent_id != agent.agent_id
+                  and a.agent_id not in self._active_matches]
+        if not others:
+            return agent.position
+
+        # Find closest
+        target = min(others, key=lambda a: abs(a.position.x - agent.position.x)
+                                         + abs(a.position.y - agent.position.y))
+
+        dx = 0
+        dy = 0
+        if target.position.x > agent.position.x:   dx =  1
+        elif target.position.x < agent.position.x: dx = -1
+        if target.position.y > agent.position.y:   dy =  1
+        elif target.position.y < agent.position.y: dy = -1
+
+        # Move along the longer axis first for direct pathing
+        ax = abs(target.position.x - agent.position.x)
+        ay = abs(target.position.y - agent.position.y)
+        if ax >= ay:
+            dy = 0
+        else:
+            dx = 0
+
         return Position(
-            x=max(0, min(self.config.map_width  - 1, pos.x + dx)),
-            y=max(0, min(self.config.map_height - 1, pos.y + dy)),
+            x=max(0, min(self.config.map_width  - 1, agent.position.x + dx)),
+            y=max(0, min(self.config.map_height - 1, agent.position.y + dy)),
         )
 
     def _adjacent(self, a: Position, b: Position) -> bool:
