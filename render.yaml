@@ -22,12 +22,13 @@ services:
       - key: OPENAI_MODEL
         value: gpt-4o-mini
 
+      # Tournament config
       - key: MAX_AGENTS
         value: 8
       - key: MAX_SIMULTANEOUS_MATCHES
         value: 3
       - key: TURNS_PER_MATCH
-        value: 5
+        value: 3
       - key: COOLDOWN_SECONDS
         value: 30
       - key: MAP_WIDTH

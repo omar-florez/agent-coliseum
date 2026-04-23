@@ -62,9 +62,118 @@ class NaiveAgent(Agent):
         No history, no memory, no RAG.
         """
         if ctx.role == "asker":
-            prompt = f"You are competing in a Latin America knowledge contest. Topic: {ctx.topic}. Ask one challenging question in Spanish or English. Just the question, nothing else."
+            prompt = f"""You are competing in a Latin America knowledge contest.
+Topic: {ctx.topic}
+Role: asker
+
+Think step by step using this reasoning structure:
+
+# SITUATION  [Chain-of-Thought — Wei et al. 2022, NeurIPS]
+# Decompose the current state before acting.
+# "chain of thought prompting significantly improves the ability
+#  of large language models to perform complex reasoning."
+# → State the topic, your role, turn number, and current scores.
+
+SITUATION: <assess topic, role, turn, score gap>
+
+# OPPONENT  [Theory of Mind / Opponent Modeling — Langner et al. 2023]
+# Model what your opponent knows and how they reason.
+# ToM-enabled agents outperform reactive agents in competitive settings
+# by anticipating the opponent's next move before it happens.
+# → What are their known weaknesses? What topics did they struggle with?
+
+OPPONENT: <model their knowledge gaps and tendencies>
+
+# GOAL  [ReAct — Yao et al. 2022, ICLR 2023]
+# Interleave reasoning with goal-directed action planning.
+# "ReAct generates verbal reasoning traces and task-specific actions
+#  in an interleaved manner."
+# → State your concrete objective for this specific turn.
+
+GOAL: <one concrete objective for this turn>
+
+# DRAFT  [Scratchpad — Nye et al. 2021]
+# Use an intermediate scratchpad to produce a first attempt
+# before committing to a final answer.
+# "Scratchpads allow models to show their work, dramatically
+#  improving accuracy on multi-step reasoning tasks."
+# → Write your first attempt at the question or answer.
+
+DRAFT: <first attempt — question if asker, answer if answerer>
+
+# CRITIQUE  [Self-Refine — Madaan et al. 2023, NeurIPS]
+# Iteratively improve output using self-generated feedback.
+# "Self-Refine produces significantly better outputs than
+#  one-step generation across diverse tasks."
+# → Is the draft good enough? Too vague? Missing a key fact?
+
+CRITIQUE: <evaluate draft quality, identify gaps>
+
+# FINAL  [Reflexion — Shinn et al. 2023]
+# Commit to a revised response informed by self-reflection.
+# "Reflexion agents verbally reflect on task feedback signals
+#  to maintain an episodic memory buffer."
+# → Write the final polished question (1 sentence) or answer (1-2 sentences).
+
+FINAL: <final question or answer only>
+"""
         else:
-            prompt = f"You are competing in a Latin America knowledge contest. Topic: {ctx.topic}. Question: {ctx.current_question}. Answer as accurately as you can in 1-3 sentences."
+            prompt = f"""You are competing in a Latin America knowledge contest.
+Topic: {ctx.topic}
+Role: answerer
+Question to answer: {ctx.current_question}
+
+Think step by step using this reasoning structure:
+
+# SITUATION  [Chain-of-Thought — Wei et al. 2022, NeurIPS]
+# Decompose the current state before acting.
+# "chain of thought prompting significantly improves the ability
+#  of large language models to perform complex reasoning."
+# → State the topic, your role, turn number, and current scores.
+
+SITUATION: <assess topic, role, turn, score gap>
+
+# OPPONENT  [Theory of Mind / Opponent Modeling — Langner et al. 2023]
+# Model what your opponent knows and how they reason.
+# ToM-enabled agents outperform reactive agents in competitive settings
+# by anticipating the opponent's next move before it happens.
+# → What are their known weaknesses? What topics did they struggle with?
+
+OPPONENT: <model their knowledge gaps and tendencies>
+
+# GOAL  [ReAct — Yao et al. 2022, ICLR 2023]
+# Interleave reasoning with goal-directed action planning.
+# "ReAct generates verbal reasoning traces and task-specific actions
+#  in an interleaved manner."
+# → State your concrete objective for this specific turn.
+
+GOAL: <one concrete objective for this turn>
+
+# DRAFT  [Scratchpad — Nye et al. 2021]
+# Use an intermediate scratchpad to produce a first attempt
+# before committing to a final answer.
+# "Scratchpads allow models to show their work, dramatically
+#  improving accuracy on multi-step reasoning tasks."
+# → Write your first attempt at the question or answer.
+
+DRAFT: <first attempt — question if asker, answer if answerer>
+
+# CRITIQUE  [Self-Refine — Madaan et al. 2023, NeurIPS]
+# Iteratively improve output using self-generated feedback.
+# "Self-Refine produces significantly better outputs than
+#  one-step generation across diverse tasks."
+# → Is the draft good enough? Too vague? Missing a key fact?
+
+CRITIQUE: <evaluate draft quality, identify gaps>
+
+# FINAL  [Reflexion — Shinn et al. 2023]
+# Commit to a revised response informed by self-reflection.
+# "Reflexion agents verbally reflect on task feedback signals
+#  to maintain an episodic memory buffer."
+# → Write the final polished question (1 sentence) or answer (1-2 sentences).
+
+FINAL: <final question or answer only>
+"""
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",

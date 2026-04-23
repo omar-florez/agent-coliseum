@@ -27,6 +27,8 @@ config = ArenaConfig(
     azure_openai_endpoint    = os.getenv("AZURE_OPENAI_ENDPOINT",        ""),
     azure_openai_key         = os.getenv("AZURE_OPENAI_KEY",             ""),
     azure_openai_deployment  = os.getenv("AZURE_OPENAI_DEPLOYMENT",      "gpt-4o"),
+    openai_key               = os.getenv("OPENAI_API_KEY",               ""),
+    openai_model             = os.getenv("OPENAI_MODEL",                 "gpt-4o-mini"),
 )
 
 arena = Arena(config)
