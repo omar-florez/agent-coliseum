@@ -17,6 +17,9 @@
 # ── CELL 2: Config ───────────────────────────────────────────
 import os, json, random
 from agent_base import Agent, MatchContext, MatchResult, WorldContext, Position
+
+from pyngrok import ngrok
+ngrok.kill()  # kills all existing tunnels on this account
 from agent_server import serve_and_register
 
 OPENAI_API_KEY = "sk-..."
@@ -182,7 +185,7 @@ CRITIQUE: <evaluate draft quality, identify gaps>
 #  to maintain an episodic memory buffer."
 # → Write the final polished question (1 sentence) or answer (1-2 sentences).
 
-FINAL: <final question or answer only>
+FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 """
 
         result = think_chain.invoke({"input": input_text})

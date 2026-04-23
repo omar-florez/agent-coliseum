@@ -22,6 +22,9 @@
 import random
 from openai import OpenAI
 from agent_base import Agent, MatchContext, MatchResult, WorldContext, Position
+
+from pyngrok import ngrok
+ngrok.kill()  # kills all existing tunnels on this account
 from agent_server import serve_and_register
 
 OPENAI_API_KEY = "sk-..."
@@ -115,7 +118,7 @@ CRITIQUE: <evaluate draft quality, identify gaps>
 #  to maintain an episodic memory buffer."
 # → Write the final polished question (1 sentence) or answer (1-2 sentences).
 
-FINAL: <final question or answer only>
+FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 """
         else:
             prompt = f"""You are competing in a Latin America knowledge contest.
@@ -172,14 +175,14 @@ CRITIQUE: <evaluate draft quality, identify gaps>
 #  to maintain an episodic memory buffer."
 # → Write the final polished question (1 sentence) or answer (1-2 sentences).
 
-FINAL: <final question or answer only>
+FINAL: <final question (1 sentence) or answer (1-2 sentences max, be concise)>
 """
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=150,
+            max_tokens=100,
         )
         return response.choices[0].message.content.strip()
 
