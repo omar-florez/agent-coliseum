@@ -4,12 +4,12 @@ from openai import AzureOpenAI, OpenAI
 
 class Judge:
     """
-    Scores answers using either Azure OpenAI or OpenAI.
+    Scores answers using one of three providers:
 
-    Priority:
       1. Azure OpenAI  — if AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_KEY are set
-      2. OpenAI        — if OPENAI_API_KEY is set
-      3. Neither       — returns fallback score of 5
+      2. Azure Foundry / OpenAI with custom base_url — if OPENAI_BASE_URL is set
+      3. OpenAI        — if only OPENAI_API_KEY is set
+      4. None          — returns fallback score of 5
     """
 
     SYSTEM_PROMPT = """You are an expert judge in a Latin America knowledge tournament.
@@ -36,8 +36,10 @@ Respond ONLY with this JSON:
         azure_deployment: str = "gpt-4o",
         openai_key:       str = "",
         openai_model:     str = "gpt-4o-mini",
+        openai_base_url:  str = "",
     ):
         if azure_endpoint and azure_key:
+            # Option 1: Azure OpenAI (classic)
             self.client = AzureOpenAI(
                 azure_endpoint=azure_endpoint,
                 api_key=azure_key,
@@ -46,12 +48,23 @@ Respond ONLY with this JSON:
             self.deployment = azure_deployment
             self._provider  = "azure"
 
+        elif openai_key and openai_base_url:
+            # Option 2: Azure Foundry or any OpenAI-compatible endpoint
+            self.client = OpenAI(
+                base_url=openai_base_url,
+                api_key=openai_key,
+            )
+            self.deployment = openai_model
+            self._provider  = "azure-foundry"
+
         elif openai_key:
+            # Option 3: Standard OpenAI
             self.client     = OpenAI(api_key=openai_key)
             self.deployment = openai_model
             self._provider  = "openai"
 
         else:
+            # Option 4: No provider configured
             self.client     = None
             self.deployment = None
             self._provider  = "none"
@@ -60,8 +73,9 @@ Respond ONLY with this JSON:
               + (f" model={self.deployment}" if self.deployment else ""))
 
     def score(self, topic: str, question: str, answer: str) -> tuple[int, str]:
+        """Returns (score 1-10, one-sentence reason)."""
         if self.client is None:
-            return 5, "No judge configured — set AZURE_OPENAI_KEY or OPENAI_API_KEY"
+            return 5, "No judge configured — set OPENAI_API_KEY or AZURE_OPENAI_KEY"
 
         prompt = self.SCORE_PROMPT.format(
             topic=topic, question=question, answer=answer

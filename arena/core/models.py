@@ -25,15 +25,15 @@ class Position:
 
 @dataclass
 class Turn:
-    turn_number:        int
-    asker:              str   # agent_id
-    answerer:           str   # agent_id
-    question:           str
-    answer:             str
-    score:              int
-    score_reason:       str
-    scratchpad_asker:   str = ""   # exposed portion from think()
-    scratchpad_answerer:str = ""
+    turn_number:         int
+    asker:               str
+    answerer:            str
+    question:            str
+    answer:              str
+    score:               int
+    score_reason:        str
+    scratchpad_asker:    str = ""
+    scratchpad_answerer: str = ""
 
 
 @dataclass
@@ -57,15 +57,15 @@ class MatchContext:
     topic:             str
     turn:              int
     total_turns:       int
-    role:              str              # "asker" | "answerer"
-    history:           list            # list of Turn-dicts (JSON-safe)
+    role:              str
+    history:           list
     my_agent_id:       str
     opponent_agent_id: str
     opponent_name:     str
     my_scores:         list[int]
     opponent_scores:   list[int]
-    scratchpad:        str = ""        # agent's own persistent notes
-    current_question:  str = ""        # populated only for answerer role
+    scratchpad:        str = ""
+    current_question:  str = ""
 
 
 @dataclass
@@ -95,11 +95,14 @@ class ArenaConfig:
     max_simultaneous_matches: int   = 3
     map_width:                int   = 20
     map_height:               int   = 15
-    turns_per_match:          int   = 5
+    turns_per_match:          int   = 3
     cooldown_seconds:         int   = 30
     admin_token:              str   = "changeme"
+    # Azure OpenAI (takes priority if endpoint + key are set)
     azure_openai_endpoint:    str   = ""
     azure_openai_key:         str   = ""
     azure_openai_deployment:  str   = "gpt-4o"
+    # OpenAI or Azure Foundry (base_url overrides default OpenAI endpoint)
     openai_key:               str   = ""
     openai_model:             str   = "gpt-4o-mini"
+    openai_base_url:          str   = ""   # e.g. https://rsgd15-foundry.openai.azure.com/openai/v1/
