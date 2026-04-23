@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌎 LatAm Arena</title>
+<title>🌎 Agent Coliseum</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -99,7 +99,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 <body>
 
 <div id="header">
-  <div id="logo">🌎 LATAM ARENA</div>
+  <div id="logo">🌎 AGENT COLISEUM</div>
   <div id="status">
     <span id="conn-dot">●</span>
     <span id="conn-text" style="font-size:12px;color:#8b949e">Not connected</span>
@@ -234,29 +234,29 @@ class ArenaScene extends Phaser.Scene {
     const container = this.add.container(px, py).setDepth(10);
 
     // Shadow
-    const shadow = this.add.ellipse(0, 16, 26, 8, 0x000000, 0.35);
+    const shadow = this.add.ellipse(0, 22, 38, 10, 0x000000, 0.35);
 
     // Body
-    const body = this.add.circle(0, 0, 15, color);
-    body.setStrokeStyle(2, 0xffffff, 0.5);
+    const body = this.add.circle(0, 0, 22, color);
+    body.setStrokeStyle(3, 0xffffff, 0.6);
 
     // Avatar emoji
     const emoji = this.add.text(0, 0, avatar, {
-      fontSize: '17px', resolution: 2,
+      fontSize: '24px', resolution: 2,
     }).setOrigin(0.5, 0.5);
 
     // Name label
-    const label = this.add.text(0, 24, name.length > 10 ? name.substring(0, 9) + '…' : name, {
-      fontSize: '9px',
+    const label = this.add.text(0, 32, name.length > 14 ? name.substring(0, 13) + '…' : name, {
+      fontSize: '12px',
       fontFamily: 'system-ui, sans-serif',
       color: '#ffffff',
-      backgroundColor: '#00000099',
-      padding: { x: 4, y: 2 },
+      backgroundColor: '#000000bb',
+      padding: { x: 6, y: 3 },
       resolution: 2,
     }).setOrigin(0.5, 0);
 
     // Battle ring (hidden initially)
-    const ring = this.add.circle(0, 0, 20, 0x000000, 0);
+    const ring = this.add.circle(0, 0, 28, 0x000000, 0);
     ring.setStrokeStyle(0, 0xffd700);
 
     // Speech bubble (hidden)
@@ -279,8 +279,8 @@ class ArenaScene extends Phaser.Scene {
     const c = this.add.container(0, 0);
     const bg  = this.add.graphics();
     const txt = this.add.text(0, 0, '', {
-      fontSize: '9px', fontFamily: 'system-ui, sans-serif',
-      color: '#ffffff', wordWrap: { width: 130 }, align: 'center',
+      fontSize: '13px', fontFamily: 'system-ui, sans-serif',
+      color: '#ffffff', wordWrap: { width: 200 }, align: 'center',
       resolution: 2,
     }).setOrigin(0.5, 0.5);
     c.add([bg, txt]);
@@ -296,18 +296,18 @@ class ArenaScene extends Phaser.Scene {
     const txt = bubble._txt;
     const bg  = bubble._bg;
 
-    const display = text.length > 60 ? text.substring(0, 57) + '…' : text;
+    const display = text.length > 80 ? text.substring(0, 77) + '…' : text;
     txt.setText(display);
 
-    const w = Math.max(txt.width + 14, 60);
-    const h = txt.height + 12;
+    const w = Math.max(txt.width + 20, 80);
+    const h = txt.height + 18;
     bg.clear();
-    bg.fillStyle(hexColor, 0.92);
-    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 5);
+    bg.fillStyle(hexColor, 0.95);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
     // Tail
-    bg.fillTriangle(0, h / 2, -6, h / 2 + 8, 6, h / 2 + 8);
+    bg.fillTriangle(0, h / 2, -8, h / 2 + 12, 8, h / 2 + 12);
 
-    bubble.setPosition(0, -50 - yExtra).setVisible(true).setAlpha(0);
+    bubble.setPosition(0, -68 - yExtra).setVisible(true).setAlpha(0);
     this.tweens.add({ targets: bubble, alpha: 1, duration: 200 });
   }
 
