@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌎 LatAm Arena</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── header ── */
+#header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:#161b22;border-bottom:1px solid #30363d;flex-shrink:0;z-index:10}
+#logo{font-size:18px;font-weight:800;letter-spacing:3px;background:linear-gradient(90deg,#58a6ff,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#status{display:flex;align-items:center;gap:12px}
+#conn-dot{font-size:16px;color:#888;transition:color .3s}
+#conn-dot.connected{color:#3fb950}
+#conn-dot.error{color:#f85149}
+#phase-badge{border:1px solid #30363d;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:2px;transition:all .3s}
+#phase-badge.lobby{border-color:#58a6ff;color:#58a6ff}
+#phase-badge.roaming{border-color:#3fb950;color:#3fb950;animation:pulse 2s infinite}
+#phase-badge.finals{border-color:#f78166;color:#f78166;animation:pulse 1s infinite}
+#phase-badge.ended{border-color:#d2a8ff;color:#d2a8ff}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── config bar ── */
+#config-bar{display:flex;align-items:center;gap:8px;padding:5px 20px;background:#0d1117;border-bottom:1px solid #21262d;flex-shrink:0;font-size:12px;color:#8b949e}
+#arena-url{background:#161b22;border:1px solid #30363d;color:#e6edf3;padding:3px 10px;border-radius:4px;font-size:12px;width:260px;outline:none}
+#arena-url:focus{border-color:#58a6ff}
+#connect-btn{background:#1f6feb;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+#connect-btn:hover{background:#388bfd}
+#agent-count{margin-left:auto;color:#484f58}
+
+/* ── main layout ── */
+#main{display:flex;flex:1;overflow:hidden}
+#game-wrap{flex-shrink:0;background:#1a3d17;position:relative}
+#game-wrap canvas{display:block}
+
+/* ── match panel ── */
+#match-panel{flex:1;background:#161b22;border-left:1px solid #30363d;padding:14px 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-width:320px;max-width:420px}
+#match-header{flex-shrink:0}
+#match-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#484f58;text-transform:uppercase;margin-bottom:4px}
+#match-topic{font-size:14px;font-weight:700;color:#e6edf3;margin-bottom:3px;line-height:1.4}
+#match-vs{font-size:12px;color:#8b949e}
+#turn-separator{height:1px;background:#21262d;margin:4px 0;flex-shrink:0}
+
+#no-match{text-align:center;color:#484f58;padding:40px 20px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#no-match .icon{font-size:48px}
+#no-match .title{font-size:15px;font-weight:600;color:#6e7681}
+#no-match .sub{font-size:12px;line-height:1.6}
+
+/* ── turn cards ── */
+.turn-card{border-radius:6px;padding:9px 11px;border-left:3px solid;margin-bottom:0;animation:slideIn .25s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.card-agent{font-size:10px;color:#8b949e;margin-bottom:5px}
+.card-text{font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+
+.card-think   {background:#1a0d33;border-color:#9B8EC4}
+.card-think   .card-label{color:#9B8EC4}
+.card-question{background:#1e1400;border-color:#E8A838}
+.card-question .card-label{color:#E8A838}
+.card-answer  {background:#001c1c;border-color:#4ABFBF}
+.card-answer  .card-label{color:#4ABFBF}
+.card-score   {background:#081a08;border-color:#6BCB6B}
+.card-score   .card-label{color:#6BCB6B}
+
+/* ── leaderboard ── */
+#leaderboard{background:#0d1117;border-top:1px solid #21262d;padding:10px 20px;flex-shrink:0}
+#lb-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#484f58;text-transform:uppercase;margin-bottom:8px}
+#lb-rows{display:flex;flex-direction:column;gap:5px}
+.lb-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.lb-rank{width:22px;text-align:center;flex-shrink:0;font-size:14px}
+.lb-avatar{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.lb-name{width:130px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-bar-wrap{flex:1;background:#21262d;border-radius:3px;height:5px}
+.lb-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.lb-score{width:55px;text-align:right;font-weight:700;font-size:13px}
+.lb-record{width:44px;font-size:10px;color:#484f58;text-align:right}
+.lb-row.elim .lb-name{color:#484f58;text-decoration:line-through;font-weight:400}
+.lb-row.elim .lb-bar{background:#f85149;opacity:.4}
+.lb-row.elim .lb-score{color:#484f58}
+
+/* ── winner overlay ── */
+#winner-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px}
+#winner-overlay.show{display:flex}
+#winner-emoji{font-size:100px;animation:bounce 1s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
+#winner-name{font-size:52px;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px}
+#winner-sub{font-size:20px;color:#8b949e}
+#winner-close{margin-top:20px;padding:10px 28px;background:#3fb950;border:none;border-radius:8px;cursor:pointer;font-size:15px;font-weight:700;color:#0d1117}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0d1117}::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="logo">🌎 LATAM ARENA</div>
+  <div id="status">
+    <span id="conn-dot">●</span>
+    <span id="conn-text" style="font-size:12px;color:#8b949e">Not connected</span>
+    <span id="phase-badge" class="lobby">LOBBY</span>
+  </div>
+</div>
+
+<div id="config-bar">
+  <span>Arena URL:</span>
+  <input id="arena-url" type="text" placeholder="http://AZURE_VM_IP:8000" spellcheck="false">
+  <button id="connect-btn">Connect</button>
+  <span id="agent-count"></span>
+</div>
+
+<div id="main">
+  <div id="game-wrap"><!-- Phaser canvas injected here --></div>
+
+  <div id="match-panel">
+    <div id="no-match">
+      <div class="icon">⚔️</div>
+      <div class="title">Waiting for a match…</div>
+      <div class="sub">Agents will challenge each other<br>when they meet on the map</div>
+    </div>
+    <div id="match-header" style="display:none">
+      <div id="match-label">⚔️ CURRENT MATCH</div>
+      <div id="match-topic"></div>
+      <div id="match-vs"></div>
+    </div>
+    <div id="turn-separator" style="display:none"></div>
+    <div id="turn-cards"></div>
+  </div>
+</div>
+
+<div id="leaderboard">
+  <div id="lb-label">📊 LEADERBOARD</div>
+  <div id="lb-rows"></div>
+</div>
+
+<div id="winner-overlay">
+  <div id="winner-emoji"></div>
+  <div id="winner-name"></div>
+  <div id="winner-sub">🏆 LatAm Arena Champion</div>
+  <button id="winner-close" onclick="this.closest('#winner-overlay').classList.remove('show')">
+    View Results
+  </button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG + STATE
+// ═══════════════════════════════════════════════════════
+let ARENA_URL = localStorage.getItem('latam_arena_url') || '';
+document.getElementById('arena-url').value = ARENA_URL;
+
+const TILE   = 32;
+const MAP_W  = 20;
+const MAP_H  = 15;
+const CVS_W  = MAP_W * TILE;   // 640
+const CVS_H  = MAP_H * TILE;   // 480
+
+const COLORS = [
+  0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12,
+  0x9b59b6, 0x1abc9c, 0xe67e22, 0xe91e63,
+];
+
+const gameAgents = {};         // agentId → Phaser objects
+let   colorCursor   = 0;
+let   gameScene     = null;
+let   sseSource     = null;
+let   maxScore      = 1;
+let   currentMatchIds = null;  // { a, b }
+
+// ═══════════════════════════════════════════════════════
+//  PHASER
+// ═══════════════════════════════════════════════════════
+class ArenaScene extends Phaser.Scene {
+  constructor() { super('Arena'); }
+
+  create() {
+    gameScene = this;
+    this._drawTilemap();
+  }
+
+  // ── map ─────────────────────────────────────────────
+  _drawTilemap() {
+    const g = this.add.graphics();
+
+    // Checkerboard grass
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        g.fillStyle((x + y) % 2 === 0 ? 0x2d5a27 : 0x346830);
+        g.fillRect(x * TILE, y * TILE, TILE, TILE);
+      }
+    }
+
+    // Central horizontal path
+    g.fillStyle(0x8b7355);
+    for (let x = 0; x < MAP_W; x++) g.fillRect(x * TILE, 7 * TILE, TILE, TILE);
+
+    // Central vertical path
+    for (let y = 0; y < MAP_H; y++) g.fillRect(10 * TILE, y * TILE, TILE, TILE);
+
+    // Lighter path overlay
+    g.fillStyle(0xc8a87a, 0.35);
+    g.fillRect(0, 7 * TILE + 8, CVS_W, TILE - 16);
+    g.fillRect(10 * TILE + 8, 0, TILE - 16, CVS_H);
+
+    // Tree border
+    g.fillStyle(0x1a3d17);
+    for (let x = 0; x < MAP_W; x++) {
+      g.fillRoundedRect(x * TILE + 3, 3, TILE - 6, TILE - 6, 4);
+      g.fillRoundedRect(x * TILE + 3, (MAP_H - 1) * TILE + 3, TILE - 6, TILE - 6, 4);
+    }
+    for (let y = 1; y < MAP_H - 1; y++) {
+      g.fillRoundedRect(3, y * TILE + 3, TILE - 6, TILE - 6, 4);
+      g.fillRoundedRect((MAP_W - 1) * TILE + 3, y * TILE + 3, TILE - 6, TILE - 6, 4);
+    }
+
+    // Grid lines
+    g.lineStyle(0.5, 0x000000, 0.12);
+    for (let x = 0; x <= MAP_W; x++) g.lineBetween(x * TILE, 0, x * TILE, CVS_H);
+    for (let y = 0; y <= MAP_H; y++) g.lineBetween(0, y * TILE, CVS_W, y * TILE);
+
+    g.setDepth(0);
+  }
+
+  // ── agent lifecycle ──────────────────────────────────
+  spawnAgent(agentId, name, avatar, color, tx, ty) {
+    const px = tx * TILE + TILE / 2;
+    const py = ty * TILE + TILE / 2;
+
+    const container = this.add.container(px, py).setDepth(10);
+
+    // Shadow
+    const shadow = this.add.ellipse(0, 16, 26, 8, 0x000000, 0.35);
+
+    // Body
+    const body = this.add.circle(0, 0, 15, color);
+    body.setStrokeStyle(2, 0xffffff, 0.5);
+
+    // Avatar emoji
+    const emoji = this.add.text(0, 0, avatar, {
+      fontSize: '17px', resolution: 2,
+    }).setOrigin(0.5, 0.5);
+
+    // Name label
+    const label = this.add.text(0, 24, name.length > 10 ? name.substring(0, 9) + '…' : name, {
+      fontSize: '9px',
+      fontFamily: 'system-ui, sans-serif',
+      color: '#ffffff',
+      backgroundColor: '#00000099',
+      padding: { x: 4, y: 2 },
+      resolution: 2,
+    }).setOrigin(0.5, 0);
+
+    // Battle ring (hidden initially)
+    const ring = this.add.circle(0, 0, 20, 0x000000, 0);
+    ring.setStrokeStyle(0, 0xffd700);
+
+    // Speech bubble (hidden)
+    const bubble = this._makeBubble();
+    bubble.setPosition(0, -46).setVisible(false);
+
+    container.add([shadow, ring, body, emoji, label, bubble]);
+
+    gameAgents[agentId] = { container, body, ring, bubble, label, emoji, color, tx, ty };
+
+    // Entrance
+    container.setAlpha(0).setScale(0);
+    this.tweens.add({
+      targets: container, alpha: 1, scaleX: 1, scaleY: 1,
+      duration: 500, ease: 'Back.easeOut',
+    });
+  }
+
+  _makeBubble() {
+    const c = this.add.container(0, 0);
+    const bg  = this.add.graphics();
+    const txt = this.add.text(0, 0, '', {
+      fontSize: '9px', fontFamily: 'system-ui, sans-serif',
+      color: '#ffffff', wordWrap: { width: 130 }, align: 'center',
+      resolution: 2,
+    }).setOrigin(0.5, 0.5);
+    c.add([bg, txt]);
+    c._bg  = bg;
+    c._txt = txt;
+    return c;
+  }
+
+  showBubble(agentId, text, hexColor, yExtra = 0) {
+    const a = gameAgents[agentId];
+    if (!a) return;
+    const { bubble } = a;
+    const txt = bubble._txt;
+    const bg  = bubble._bg;
+
+    const display = text.length > 60 ? text.substring(0, 57) + '…' : text;
+    txt.setText(display);
+
+    const w = Math.max(txt.width + 14, 60);
+    const h = txt.height + 12;
+    bg.clear();
+    bg.fillStyle(hexColor, 0.92);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 5);
+    // Tail
+    bg.fillTriangle(0, h / 2, -6, h / 2 + 8, 6, h / 2 + 8);
+
+    bubble.setPosition(0, -50 - yExtra).setVisible(true).setAlpha(0);
+    this.tweens.add({ targets: bubble, alpha: 1, duration: 200 });
+  }
+
+  hideBubble(agentId) {
+    const a = gameAgents[agentId];
+    if (!a) return;
+    this.tweens.add({
+      targets: a.bubble, alpha: 0, duration: 250,
+      onComplete: () => { if (a.bubble) a.bubble.setVisible(false); },
+    });
+  }
+
+  moveAgent(agentId, tx, ty) {
+    const a = gameAgents[agentId];
+    if (!a) return;
+    a.tx = tx; a.ty = ty;
+    this.tweens.add({
+      targets: a.container,
+      x: tx * TILE + TILE / 2,
+      y: ty * TILE + TILE / 2,
+      duration: 550,
+      ease: 'Sine.easeInOut',
+    });
+    // Squash on move
+    this.tweens.add({
+      targets: a.body, scaleX: 0.88, scaleY: 1.12,
+      duration: 150, yoyo: true,
+    });
+  }
+
+  activateRing(agentId) {
+    const a = gameAgents[agentId];
+    if (!a) return;
+    a.ring.setStrokeStyle(3, 0xffd700, 1);
+    this.tweens.add({
+      targets: a.ring, scaleX: 1.4, scaleY: 1.4,
+      duration: 700, yoyo: true, repeat: -1,
+    });
+  }
+
+  deactivateRing(agentId) {
+    const a = gameAgents[agentId];
+    if (!a) return;
+    this.tweens.killTweensOf(a.ring);
+    a.ring.setStrokeStyle(0, 0xffd700).setScale(1);
+    this.hideBubble(agentId);
+  }
+
+  eliminateAgent(agentId) {
+    const a = gameAgents[agentId];
+    if (!a) return;
+    const { x, y } = a.container;
+
+    // Spin and shrink
+    this.tweens.add({
+      targets: a.container, alpha: 0, scaleX: 0, scaleY: 0,
+      angle: 360, duration: 700, ease: 'Back.easeIn',
+      onComplete: () => { a.container.destroy(); delete gameAgents[agentId]; },
+    });
+
+    // Particle burst
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const p = this.add.circle(x, y, 4, a.color).setDepth(20);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * 50, y: y + Math.sin(angle) * 50,
+        alpha: 0, scale: 0, duration: 600,
+        onComplete: () => p.destroy(),
+      });
+    }
+
+    // 💥 text
+    const boom = this.add.text(x, y - 20, '💥', { fontSize: '28px' })
+                    .setOrigin(0.5).setDepth(20);
+    this.tweens.add({
+      targets: boom, y: y - 60, alpha: 0, duration: 700,
+      onComplete: () => boom.destroy(),
+    });
+  }
+}
+
+const game = new Phaser.Game({
+  type: Phaser.AUTO,
+  width: CVS_W,
+  height: CVS_H,
+  parent: 'game-wrap',
+  backgroundColor: '#1a3d17',
+  scene: ArenaScene,
+  roundPixels: true,
+  banner: false,
+});
+
+// Scale canvas to fit available height
+function fitCanvas() {
+  const avail = window.innerHeight - 108 - 80;   // header + config + leaderboard
+  const scale = Math.min(1, avail / CVS_H, (window.innerWidth * 0.62) / CVS_W);
+  const wrap  = document.getElementById('game-wrap');
+  wrap.style.width  = `${CVS_W * scale}px`;
+  wrap.style.height = `${CVS_H * scale}px`;
+  const canvas = wrap.querySelector('canvas');
+  if (canvas) {
+    canvas.style.width  = `${CVS_W * scale}px`;
+    canvas.style.height = `${CVS_H * scale}px`;
+  }
+}
+window.addEventListener('resize', fitCanvas);
+setTimeout(fitCanvas, 200);
+
+// ═══════════════════════════════════════════════════════
+//  EVENT HANDLERS
+// ═══════════════════════════════════════════════════════
+function route(type, payload) {
+  switch (type) {
+    case 'state':             onState(payload);           break;
+    case 'agent_accepted':    onAccepted(payload);        break;
+    case 'agent_eliminated':  onEliminated(payload);      break;
+    case 'agent_moved':       onMoved(payload);           break;
+    case 'match_start':       onMatchStart(payload);      break;
+    case 'thinking':          onThinking(payload);        break;
+    case 'question':          onQuestion(payload);        break;
+    case 'answer':            onAnswer(payload);          break;
+    case 'score':             onScore(payload);           break;
+    case 'match_end':         onMatchEnd(payload);        break;
+    case 'phase_change':      onPhase(payload.phase);     break;
+    case 'leaderboard_update':onLeaderboard(payload);     break;
+    case 'tournament_ended':  onTournamentEnd(payload);   break;
+    case 'agent_pending':     break;  // admin only
+  }
+}
+
+function onState(p) {
+  onPhase(p.phase);
+  const active = (p.agents || []).filter(a => a.status === 'active');
+  setCount(active.length);
+  p.agents.forEach(a => {
+    if (a.status === 'active') {
+      withScene(() => {
+        if (!gameAgents[a.agent_id]) {
+          const c = COLORS[colorCursor++ % COLORS.length];
+          gameScene.spawnAgent(a.agent_id, a.name, a.avatar, c,
+                               a.position.x, a.position.y);
+        }
+      });
+    }
+  });
+  onLeaderboard(p);
+}
+
+function onAccepted(p) {
+  const c = COLORS[colorCursor++ % COLORS.length];
+  withScene(() => {
+    gameScene.spawnAgent(p.agent_id, p.name, p.avatar, c,
+                         p.position.x, p.position.y);
+  });
+  setCount(Object.keys(gameAgents).length + 1);
+}
+
+function onEliminated(p) {
+  withScene(() => gameScene.eliminateAgent(p.agent_id));
+}
+
+function onMoved(p) {
+  withScene(() => gameScene.moveAgent(p.agent_id, p.position.x, p.position.y));
+}
+
+function onMatchStart(p) {
+  currentMatchIds = { a: p.agent_a.id, b: p.agent_b.id };
+
+  // Show panel
+  document.getElementById('no-match').style.display      = 'none';
+  document.getElementById('match-header').style.display  = 'block';
+  document.getElementById('turn-separator').style.display = 'block';
+  document.getElementById('turn-cards').innerHTML         = '';
+
+  document.getElementById('match-topic').textContent =
+    `📌 ${p.topic}`;
+  document.getElementById('match-vs').textContent =
+    `${p.agent_a.avatar} ${p.agent_a.name}  vs  ${p.agent_b.avatar} ${p.agent_b.name}`;
+
+  withScene(() => {
+    gameScene.activateRing(p.agent_a.id);
+    gameScene.activateRing(p.agent_b.id);
+  });
+}
+
+function onThinking(p) {
+  addCard('think', '🧠 THINKING', p.agent_name, `Turn ${p.turn}/${document._totalTurns||5}`,
+    'Analyzing match state and formulating strategy…');
+  withScene(() => gameScene.showBubble(p.agent_id, '🧠…', 0x6b5ea0, 0));
+}
+
+function onQuestion(p) {
+  // Update last think card with scratchpad
+  const cards = document.getElementById('turn-cards');
+  const last = cards.lastElementChild;
+  if (last && last.dataset.type === 'think') {
+    last.querySelector('.card-text').textContent =
+      (p.scratchpad || '').substring(0, 300) || 'Thinking…';
+  }
+  addCard('question', '❓ QUESTION', p.asker_name, `Turn ${p.turn}`, p.question);
+  withScene(() => gameScene.showBubble(p.asker_id,
+    '❓ ' + p.question.substring(0, 35), 0xb07d1a, 0));
+}
+
+function onAnswer(p) {
+  addCard('answer', '💬 ANSWER', p.answerer_name, `Turn ${p.turn}`, p.answer);
+  withScene(() => gameScene.showBubble(p.answerer_id,
+    '💬 ' + p.answer.substring(0, 35), 0x2a7a7a, 0));
+}
+
+function onScore(p) {
+  const scores = Object.entries(p.running_scores)
+    .map(([id, s]) => `${id.substring(0,4)}: ${s}pts`).join('  |  ');
+  addCard('score', '⭐ SCORE', 'Judge', `Turn ${p.turn}`,
+    `${p.score}/10 — ${p.reason}\n\n${scores}`);
+}
+
+function onMatchEnd(p) {
+  if (currentMatchIds) {
+    withScene(() => {
+      gameScene.deactivateRing(currentMatchIds.a);
+      gameScene.deactivateRing(currentMatchIds.b);
+    });
+    currentMatchIds = null;
+  }
+  setTimeout(() => {
+    document.getElementById('no-match').style.display      = 'block';
+    document.getElementById('match-header').style.display  = 'none';
+    document.getElementById('turn-separator').style.display = 'none';
+    document.getElementById('turn-cards').innerHTML         = '';
+  }, 5000);
+}
+
+function onPhase(phase) {
+  const badge = document.getElementById('phase-badge');
+  badge.textContent = phase.toUpperCase();
+  badge.className   = phase;
+}
+
+function onLeaderboard(p) {
+  const agents = p.agents || [];
+  if (!agents.length) return;
+  maxScore = Math.max(maxScore, ...agents.map(a => a.score || 0), 1);
+
+  const ranks  = ['🥇','🥈','🥉'];
+  const barClr = ['#ffd700','#c0c0c0','#cd7f32','#3fb950','#58a6ff','#bc8cff','#ff7b72','#f0883e'];
+  const rows   = document.getElementById('lb-rows');
+  rows.innerHTML = '';
+
+  agents.forEach((a, i) => {
+    const elim = a.status === 'eliminated';
+    const row  = document.createElement('div');
+    row.className = 'lb-row' + (elim ? ' elim' : '');
+    const pct  = Math.max(3, Math.round((a.score / maxScore) * 100));
+    const clr  = elim ? '#f85149' : (barClr[i % barClr.length]);
+    row.innerHTML = `
+      <span class="lb-rank">${elim ? '💀' : (ranks[i] || i+1)}</span>
+      <span class="lb-avatar">${a.avatar}</span>
+      <span class="lb-name">${esc(a.name)}</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%;background:${clr}"></div></div>
+      <span class="lb-score" style="color:${elim?'#484f58':clr}">${a.score}</span>
+      <span class="lb-record">${a.wins}W/${a.losses}L</span>`;
+    rows.appendChild(row);
+  });
+}
+
+function onTournamentEnd(p) {
+  onPhase('ended');
+  if (p.winner) {
+    document.getElementById('winner-emoji').textContent = p.winner.avatar;
+    document.getElementById('winner-name').textContent  = p.winner.name;
+    document.getElementById('winner-overlay').classList.add('show');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════
+function addCard(type, label, agent, turn, text) {
+  const cards = document.getElementById('turn-cards');
+  const div = document.createElement('div');
+  div.className = `turn-card card-${type}`;
+  div.dataset.type = type;
+  div.innerHTML = `
+    <div class="card-label">${label}</div>
+    <div class="card-agent">${esc(agent)} · ${esc(turn)}</div>
+    <div class="card-text">${esc(text)}</div>`;
+  cards.appendChild(div);
+  // Keep last 10
+  while (cards.children.length > 10) cards.removeChild(cards.firstChild);
+  div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function setCount(n) {
+  document.getElementById('agent-count').textContent =
+    n > 0 ? `${n} agent${n > 1 ? 's' : ''} active` : '';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function withScene(fn) {
+  if (gameScene) fn();
+  else setTimeout(() => withScene(fn), 80);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SSE CONNECTION
+// ═══════════════════════════════════════════════════════
+function connect(url) {
+  if (sseSource) sseSource.close();
+  ARENA_URL = url.replace(/\/$/, '').trim();
+  localStorage.setItem('latam_arena_url', ARENA_URL);
+
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  dot.className  = '';
+  text.textContent = 'Connecting…';
+
+  sseSource = new EventSource(`${ARENA_URL}/stream`);
+
+  sseSource.onopen = () => {
+    dot.className    = 'connected';
+    text.textContent = 'Live';
+  };
+
+  sseSource.onmessage = (e) => {
+    try {
+      const ev = JSON.parse(e.data);
+      if (ev.type !== 'ping') route(ev.type, ev.payload);
+    } catch {}
+  };
+
+  sseSource.onerror = () => {
+    dot.className    = 'error';
+    text.textContent = 'Disconnected – retrying';
+  };
+}
+
+document.getElementById('connect-btn').addEventListener('click', () => {
+  const url = document.getElementById('arena-url').value.trim();
+  if (url) connect(url);
+});
+document.getElementById('arena-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('connect-btn').click();
+});
+
+if (ARENA_URL) connect(ARENA_URL);
+</script>
+</body>
+</html>
