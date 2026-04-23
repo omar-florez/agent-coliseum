@@ -1,11 +1,15 @@
 import json
-from openai import AzureOpenAI
+from openai import AzureOpenAI, OpenAI
 
 
 class Judge:
     """
-    Scores answers using Azure OpenAI.
-    Only CENIA's credentials — participants never touch this.
+    Scores answers using either Azure OpenAI or OpenAI.
+
+    Priority:
+      1. Azure OpenAI  — if AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_KEY are set
+      2. OpenAI        — if OPENAI_API_KEY is set
+      3. Neither       — returns fallback score of 5
     """
 
     SYSTEM_PROMPT = """You are an expert judge in a Latin America knowledge tournament.
@@ -25,16 +29,40 @@ Score the answer from 1 to 10:
 Respond ONLY with this JSON:
 {{"score": <integer 1-10>, "reason": "<one concise sentence explaining the score>"}}"""
 
-    def __init__(self, endpoint: str, api_key: str, deployment: str):
-        self.client = AzureOpenAI(
-            azure_endpoint=endpoint,
-            api_key=api_key,
-            api_version="2024-02-01",
-        )
-        self.deployment = deployment
+    def __init__(
+        self,
+        azure_endpoint:   str = "",
+        azure_key:        str = "",
+        azure_deployment: str = "gpt-4o",
+        openai_key:       str = "",
+        openai_model:     str = "gpt-4o-mini",
+    ):
+        if azure_endpoint and azure_key:
+            self.client = AzureOpenAI(
+                azure_endpoint=azure_endpoint,
+                api_key=azure_key,
+                api_version="2024-02-01",
+            )
+            self.deployment = azure_deployment
+            self._provider  = "azure"
+
+        elif openai_key:
+            self.client     = OpenAI(api_key=openai_key)
+            self.deployment = openai_model
+            self._provider  = "openai"
+
+        else:
+            self.client     = None
+            self.deployment = None
+            self._provider  = "none"
+
+        print(f"[Judge] Provider: {self._provider}"
+              + (f" model={self.deployment}" if self.deployment else ""))
 
     def score(self, topic: str, question: str, answer: str) -> tuple[int, str]:
-        """Returns (score 1-10, one-sentence reason)."""
+        if self.client is None:
+            return 5, "No judge configured — set AZURE_OPENAI_KEY or OPENAI_API_KEY"
+
         prompt = self.SCORE_PROMPT.format(
             topic=topic, question=question, answer=answer
         )
@@ -48,7 +76,7 @@ Respond ONLY with this JSON:
                 temperature=0.1,
                 max_tokens=200,
             )
-            raw = resp.choices[0].message.content.strip()
+            raw  = resp.choices[0].message.content.strip()
             data = json.loads(raw)
             return int(data["score"]), str(data["reason"])
         except Exception as e:
