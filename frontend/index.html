@@ -107,7 +107,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 
 <div id="config-bar">
   <span>Arena URL:</span>
-  <input id="arena-url" type="text" placeholder="http://AZURE_VM_IP:8000" spellcheck="false">
+  <input id="arena-url" type="text" placeholder="https://agent-coliseum.onrender.com" spellcheck="false">
   <button id="connect-btn">Connect</button>
   <span id="agent-count"></span>
 </div>
@@ -149,7 +149,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 // ═══════════════════════════════════════════════════════
 //  CONFIG + STATE
 // ═══════════════════════════════════════════════════════
-let ARENA_URL = localStorage.getItem('latam_arena_url') || '';
+let ARENA_URL = localStorage.getItem('coliseum_arena_url') || '';
 document.getElementById('arena-url').value = ARENA_URL;
 
 const TILE   = 32;
@@ -621,7 +621,7 @@ function withScene(fn) {
 function connect(url) {
   if (sseSource) sseSource.close();
   ARENA_URL = url.replace(/\/$/, '').trim();
-  localStorage.setItem('latam_arena_url', ARENA_URL);
+  localStorage.setItem('coliseum_arena_url', ARENA_URL);
 
   const dot  = document.getElementById('conn-dot');
   const text = document.getElementById('conn-text');
