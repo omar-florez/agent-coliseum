@@ -62,8 +62,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .card-question .card-label{color:#E8A838}
 .card-answer  {background:#001c1c;border-color:#4ABFBF}
 .card-answer  .card-label{color:#4ABFBF}
-.card-score   {background:#081a08;border-color:#6BCB6B}
-.card-score   .card-label{color:#6BCB6B}
+.card-score   {background:#1a1400;border-color:#F5C518}
+.card-score   .card-label{color:#F5C518}
 
 /* ── leaderboard ── */
 #leaderboard{background:#0d1117;border-top:1px solid #21262d;padding:10px 20px;flex-shrink:0}
@@ -479,7 +479,11 @@ function onMatchStart(p) {
   document.getElementById('no-match').style.display      = 'none';
   document.getElementById('match-header').style.display  = 'block';
   document.getElementById('turn-separator').style.display = 'block';
-  document.getElementById('turn-cards').innerHTML         = '';
+  // Add a match separator instead of clearing
+  const sep = document.createElement('div');
+  sep.style.cssText = 'text-align:center;font-size:10px;color:#484f58;padding:6px 0;border-top:1px solid #21262d;margin:4px 0;letter-spacing:2px;';
+  sep.textContent = '--- NEW MATCH ---';
+  document.getElementById('turn-cards').appendChild(sep);
 
   document.getElementById('match-topic').textContent =
     `📌 ${p.topic}`;
@@ -520,7 +524,7 @@ function onAnswer(p) {
 function onScore(p) {
   const scores = Object.entries(p.running_scores)
     .map(([id, s]) => `${id.substring(0,4)}: ${s}pts`).join('  |  ');
-  addCard('score', '⭐ SCORE', 'Judge', `Turn ${p.turn}`,
+  addCard('score', '⭐ JUDGE', 'Judge', `Turn ${p.turn}`,
     `${p.score}/10 — ${p.reason}\n\n${scores}`);
 }
 
@@ -532,12 +536,7 @@ function onMatchEnd(p) {
     });
     currentMatchIds = null;
   }
-  setTimeout(() => {
-    document.getElementById('no-match').style.display      = 'block';
-    document.getElementById('match-header').style.display  = 'none';
-    document.getElementById('turn-separator').style.display = 'none';
-    document.getElementById('turn-cards').innerHTML         = '';
-  }, 5000);
+  // Keep match history visible — do not clear on match end
 }
 
 function onPhase(phase) {
@@ -575,6 +574,19 @@ function onLeaderboard(p) {
 
 function onTournamentEnd(p) {
   onPhase('ended');
+  // Add tournament end marker to trace history
+  const cards = document.getElementById('turn-cards');
+  const endDiv = document.createElement('div');
+  endDiv.style.cssText = 'text-align:center;padding:10px;background:#081a08;border:1px solid #3fb950;border-radius:6px;margin-top:8px;';
+  endDiv.innerHTML = p.winner
+    ? '<div style="color:#3fb950;font-weight:700;font-size:13px">🏆 TOURNAMENT ENDED</div>'
+      + '<div style="color:#8b949e;font-size:11px;margin-top:4px">Winner: '
+      + esc(p.winner.avatar) + ' ' + esc(p.winner.name)
+      + ' · Score: ' + p.winner.score + '</div>'
+    : '<div style="color:#484f58;font-size:12px">Tournament ended — no winner</div>';
+  cards.appendChild(endDiv);
+  endDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
   if (p.winner) {
     document.getElementById('winner-emoji').textContent = p.winner.avatar;
     document.getElementById('winner-name').textContent  = p.winner.name;
@@ -595,8 +607,7 @@ function addCard(type, label, agent, turn, text) {
     <div class="card-agent">${esc(agent)} · ${esc(turn)}</div>
     <div class="card-text">${esc(text)}</div>`;
   cards.appendChild(div);
-  // Keep last 10
-  while (cards.children.length > 10) cards.removeChild(cards.firstChild);
+  // All turns kept for post-match analysis
   div.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
@@ -657,6 +668,17 @@ document.getElementById('arena-url').addEventListener('keydown', e => {
 });
 
 if (ARENA_URL) connect(ARENA_URL);
+
+// ── Replay receiver (from admin panel BroadcastChannel) ───────────────────
+const replayChannel = new BroadcastChannel('coliseum_replay');
+replayChannel.onmessage = (e) => {
+  try {
+    const ev = e.data;
+    if (ev && ev.type && ev.type !== 'ping') {
+      route(ev.type, ev.payload);
+    }
+  } catch {}
+};
 </script>
 </body>
 </html>
