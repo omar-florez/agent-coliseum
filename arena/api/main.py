@@ -166,8 +166,8 @@ def admin_reject(agent_id: str):
 
 @app.post("/admin/start", dependencies=[Depends(require_admin)])
 async def admin_start():
-    if arena.phase != "lobby":
-        raise HTTPException(status_code=400, detail=f"Tournament is already in phase: {arena.phase}")
+    if arena.phase not in ("lobby", ArenaPhase.LOBBY):
+        raise HTTPException(status_code=400, detail=f"Tournament is already in phase: {arena.phase}. Call /admin/reset first.")
     await arena.start_tournament()
     return {"status": "started"}
 
@@ -184,6 +184,29 @@ async def admin_eliminate(agent_id: str):
 async def admin_end():
     await arena.end_tournament()
     return {"status": "ended"}
+
+
+@app.post("/admin/reset", dependencies=[Depends(require_admin)])
+async def admin_reset():
+    await arena.reset()
+    return {"status": "reset"}
+
+
+@app.post("/admin/pause", dependencies=[Depends(require_admin)])
+async def admin_pause():
+    await arena.pause()
+    return {"status": "paused"}
+
+
+@app.post("/admin/resume", dependencies=[Depends(require_admin)])
+async def admin_resume():
+    await arena.resume()
+    return {"status": "resumed"}
+
+
+@app.get("/admin/replay", dependencies=[Depends(require_admin)])
+async def admin_replay(last_n: int = 50):
+    return {"events": arena.get_replay_log(last_n)}
 
 
 @app.post("/admin/shutdown", dependencies=[Depends(require_admin)])
