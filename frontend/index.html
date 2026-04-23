@@ -37,7 +37,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 #game-wrap canvas{display:block}
 
 /* ── match panel ── */
-#match-panel{flex:1;background:#161b22;border-left:1px solid #30363d;padding:14px 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-width:320px;max-width:420px}
+#match-panel{flex:1;background:#161b22;border-left:1px solid #30363d;padding:14px 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-width:360px;max-width:520px}
 #match-header{flex-shrink:0}
 #match-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#484f58;text-transform:uppercase;margin-bottom:4px}
 #match-topic{font-size:14px;font-weight:700;color:#e6edf3;margin-bottom:3px;line-height:1.4}
@@ -54,7 +54,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .card-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
 .card-agent{font-size:10px;color:#8b949e;margin-bottom:5px}
-.card-text{font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.card-text{font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:160px;overflow-y:auto}
 
 .card-think   {background:#1a0d33;border-color:#9B8EC4}
 .card-think   .card-label{color:#9B8EC4}
@@ -504,17 +504,17 @@ function onQuestion(p) {
   const last = cards.lastElementChild;
   if (last && last.dataset.type === 'think') {
     last.querySelector('.card-text').textContent =
-      (p.scratchpad || '').substring(0, 300) || 'Thinking…';
+      (p.scratchpad || '').substring(0, 600) || 'Thinking…';
   }
   addCard('question', '❓ QUESTION', p.asker_name, `Turn ${p.turn}`, p.question);
   withScene(() => gameScene.showBubble(p.asker_id,
-    '❓ ' + p.question.substring(0, 35), 0xb07d1a, 0));
+    '❓ ' + p.question.substring(0, 60), 0xb07d1a, 0));
 }
 
 function onAnswer(p) {
   addCard('answer', '💬 ANSWER', p.answerer_name, `Turn ${p.turn}`, p.answer);
   withScene(() => gameScene.showBubble(p.answerer_id,
-    '💬 ' + p.answer.substring(0, 35), 0x2a7a7a, 0));
+    '💬 ' + p.answer.substring(0, 60), 0x2a7a7a, 0));
 }
 
 function onScore(p) {
