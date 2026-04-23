@@ -7,12 +7,21 @@ services:
     envVars:
       - key: ARENA_ADMIN_TOKEN
         sync: false
+
+      # Option A: Azure OpenAI (takes priority if both are set)
       - key: AZURE_OPENAI_ENDPOINT
         sync: false
       - key: AZURE_OPENAI_KEY
         sync: false
       - key: AZURE_OPENAI_DEPLOYMENT
         value: gpt-4o
+
+      # Option B: OpenAI
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+
       - key: MAX_AGENTS
         value: 8
       - key: MAX_SIMULTANEOUS_MATCHES
