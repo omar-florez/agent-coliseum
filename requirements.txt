@@ -1,20 +1,20 @@
-# Arena backend (Azure VM)
+# Arena backend (Render / Azure VM)
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
 httpx>=0.27.0
 openai>=1.30.0
 python-dotenv>=1.0.0
 
-# Participant helper
+# Participant helper (Colab)
 flask>=3.0.0
 flask-cors>=4.0.0
 pyngrok>=7.0.0
 requests>=2.31.0
 
-# Optional: RAG (Colab 01)
+# Optional: RAG — Colab 01
 # sentence-transformers>=3.0.0
 # faiss-cpu>=1.8.0
 
-# Optional: LangChain (Colab 02)
+# Optional: LangChain — Colab 02
 # langchain>=0.2.0
 # langchain-openai>=0.1.0

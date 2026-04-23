@@ -92,7 +92,7 @@ input.inp:focus{border-color:#58a6ff}
 
 <div id="conn-bar">
   <span>Arena URL:</span>
-  <input class="inp" id="arena-url" type="text" placeholder="http://VM_IP:8000" style="width:240px">
+  <input class="inp" id="arena-url" type="text" placeholder="https://agent-coliseum.onrender.com" style="width:240px">
   <span>Token:</span>
   <input class="inp" id="admin-token" type="password" placeholder="ARENA_ADMIN_TOKEN" style="width:200px">
   <button class="btn btn-blue" onclick="connect()">Connect</button>
@@ -165,8 +165,8 @@ input.inp:focus{border-color:#58a6ff}
 // ═══════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════
-let ARENA_URL   = localStorage.getItem('latam_admin_url')   || '';
-let ADMIN_TOKEN = localStorage.getItem('latam_admin_token') || '';
+let ARENA_URL   = localStorage.getItem('coliseum_admin_url')   || '';
+let ADMIN_TOKEN = localStorage.getItem('coliseum_admin_token') || '';
 let sseSource   = null;
 
 document.getElementById('arena-url').value   = ARENA_URL;
@@ -198,8 +198,8 @@ async function api(method, path, body) {
 function connect() {
   ARENA_URL   = document.getElementById('arena-url').value.trim().replace(/\/$/, '');
   ADMIN_TOKEN = document.getElementById('admin-token').value.trim();
-  localStorage.setItem('latam_admin_url',   ARENA_URL);
-  localStorage.setItem('latam_admin_token', ADMIN_TOKEN);
+  localStorage.setItem('coliseum_admin_url',   ARENA_URL);
+  localStorage.setItem('coliseum_admin_token', ADMIN_TOKEN);
 
   if (sseSource) sseSource.close();
 

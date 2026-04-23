@@ -27,7 +27,7 @@ from agent_server import serve_and_register
 
 # ── CELL 3: Config ───────────────────────────────────────────
 OPENAI_API_KEY = "sk-..."        # YOUR OpenAI key
-ARENA_URL      = "http://AZURE_VM_IP:8000"
+ARENA_URL      = "https://agent-coliseum.onrender.com"
 NGROK_TOKEN    = "your_ngrok_token"    # free at ngrok.com
 
 client = OpenAI(api_key=OPENAI_API_KEY)
