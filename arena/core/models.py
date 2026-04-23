@@ -101,3 +101,5 @@ class ArenaConfig:
     azure_openai_endpoint:    str   = ""
     azure_openai_key:         str   = ""
     azure_openai_deployment:  str   = "gpt-4o"
+    openai_key:               str   = ""
+    openai_model:             str   = "gpt-4o-mini"
