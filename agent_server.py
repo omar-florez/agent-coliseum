@@ -69,7 +69,7 @@ def _build_flask_app(agent: Agent) -> Flask:
         ctx = _parse_match_ctx(request.json)
         try:
             scratchpad = agent.think(ctx)
-            text       = agent.ask(ctx)
+            text       = agent._extract_final(scratchpad)
         except Exception as e:
             scratchpad, text = f"Error: {e}", f"I'm not sure. (Error: {e})"
         return jsonify({"text": text, "scratchpad": scratchpad})
@@ -79,7 +79,7 @@ def _build_flask_app(agent: Agent) -> Flask:
         ctx = _parse_match_ctx(request.json)
         try:
             scratchpad = agent.think(ctx)
-            text       = agent.answer(ctx)
+            text       = agent._extract_final(scratchpad)
         except Exception as e:
             scratchpad, text = f"Error: {e}", f"I'm not sure. (Error: {e})"
         return jsonify({"text": text, "scratchpad": scratchpad})
