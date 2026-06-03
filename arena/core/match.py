@@ -74,7 +74,7 @@ class MatchRunner:
                 "question":    question,
                 "scratchpad":  scratchpad_ask,
             })
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
             # ── Answerer: think → answer ─────────────────────────────────────
             await on_event("thinking", {
@@ -100,7 +100,7 @@ class MatchRunner:
                 "answer":         answer,
                 "scratchpad":     scratchpad_ans,
             })
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
             # ── Judge ────────────────────────────────────────────────────────
             score, reason = self.judge.score(topic, question, answer)
@@ -126,7 +126,7 @@ class MatchRunner:
                 "reason":       reason,
                 "running_scores": scores,
             })
-            await asyncio.sleep(0.8)
+            await asyncio.sleep(0.2)
 
         # ── Determine winner ─────────────────────────────────────────────────
         winner_id = max(scores, key=scores.get)
@@ -189,7 +189,7 @@ class MatchRunner:
             "current_question":  ctx.current_question,
         }
         try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 resp = await client.post(f"{endpoint}/{action}", json=payload)
                 data = resp.json()
                 return data.get("scratchpad", ""), data.get("text", "[no response]")
