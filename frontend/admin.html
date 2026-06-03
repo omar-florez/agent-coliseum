@@ -77,6 +77,18 @@ input.inp:focus{border-color:#58a6ff}
 #modal-title{font-weight:800;font-size:16px;margin-bottom:8px}
 #modal-msg{font-size:13px;color:#8b949e;margin-bottom:20px;line-height:1.6}
 #modal-btns{display:flex;gap:8px;justify-content:flex-end}
+
+/* ── tournament ended overlay ── */
+#ended-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:998;align-items:center;justify-content:center;flex-direction:column}
+#ended-overlay.show{display:flex}
+#ended-box{background:#161b22;border:2px solid #d2a8ff;border-radius:16px;padding:40px 48px;text-align:center;max-width:480px;width:90%}
+#ended-trophy{font-size:72px;margin-bottom:16px}
+#ended-title{font-size:22px;font-weight:800;color:#d2a8ff;margin-bottom:12px;letter-spacing:3px}
+#ended-winner{font-size:20px;font-weight:700;margin-bottom:4px}
+#ended-score{font-size:13px;color:#8b949e;margin-bottom:28px}
+#ended-countdown{font-size:12px;color:#484f58;margin-top:16px}
+.btn-purple{background:#6e40c9;color:#fff}
+.btn-lg{padding:12px 32px;font-size:15px;border-radius:8px}
 </style>
 </head>
 <body>
@@ -232,6 +244,7 @@ function connect() {
       const ev = JSON.parse(e.data);
       if (ev.type === 'phase_change')  setPhase(ev.payload.phase);
       if (ev.type === 'agent_pending') refreshAgents();
+      if (ev.type === 'tournament_ended') showEndedOverlay(ev.payload.winner);
       if (ev.type === 'agent_accepted') refreshAgents();
       if (ev.type === 'agent_eliminated') refreshAgents();
       if (ev.type === 'leaderboard_update') renderActive(ev.payload.agents);
@@ -499,6 +512,43 @@ async function replayLast() {
     }, 300);  // 300ms between events for readability
   } catch (err) { log('Replay failed: ' + err.message, 'err'); }
 }
+
+async function newRound() {
+  document.getElementById('ended-overlay').classList.remove('show');
+  try {
+    await api('POST', '/admin/reset');
+    log('Arena reset — waiting for agents to re-register...', 'ok');
+    setPhase('lobby');
+    refreshAgents();
+  } catch (err) {
+    log('New round failed: ' + err.message, 'err');
+  }
+}
+
+function showEndedOverlay(winner) {
+  const overlay = document.getElementById('ended-overlay');
+  document.getElementById('ended-winner').textContent =
+    winner ? winner.avatar + '  ' + winner.name : 'No winner';
+  document.getElementById('ended-score').textContent =
+    winner ? 'Score: ' + winner.score + ' pts' : '';
+  overlay.classList.add('show');
+
+
+}
 </script>
+
+<!-- Tournament ended overlay -->
+<div id="ended-overlay">
+  <div id="ended-box">
+    <div id="ended-trophy">🏆</div>
+    <div id="ended-title">TOURNAMENT OVER</div>
+    <div id="ended-winner"></div>
+    <div id="ended-score"></div>
+    <button class="btn btn-purple btn-lg" onclick="newRound()">
+      🔄 New Round
+    </button>
+
+  </div>
+</div>
 </body>
 </html>

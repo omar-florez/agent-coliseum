@@ -140,6 +140,7 @@ class Arena:
             "leaderboard": self._leaderboard_payload(),
         })
 
+
     async def reset(self):
         """Reset arena to LOBBY — clears all agents, matches, logs."""
         if self._roaming_task and not self._roaming_task.done():
