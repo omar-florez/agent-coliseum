@@ -1,9 +1,9 @@
 """
-agent_server.py  —  Run this in your Colab to join the arena.
+agent_server.py  --  Run this in your Colab to join the arena.
 
 Usage:
     from agent_server import serve_and_register
-    serve_and_register(agent=MyAgent(), arena_url="https://YOUR_VM_IP:8000")
+    serve_and_register(agent=MyAgent(), arena_url="https://YOUR_ARENA_URL")
 """
 import json
 import threading
@@ -155,22 +155,60 @@ def _build_flask_app(agent: Agent) -> Flask:
     return app
 
 
+def _reset_arena_if_needed(arena_url: str, admin_token: str) -> None:
+    """
+    Reset the arena to lobby if it is not already there.
+    This clears stale agents from previous runs.
+    Safe to call from any agent — only resets if tournament
+    is already running or ended (not if in lobby waiting for players).
+    """
+    import requests
+
+    if not admin_token:
+        return
+
+    try:
+        r = requests.get(f"{arena_url}/health", timeout=5)
+        phase = r.json().get("phase", "lobby")
+        if phase != "lobby":
+            reset = requests.post(
+                f"{arena_url}/admin/reset",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                timeout=5,
+            )
+            print(f"[Arena] Phase was '{phase}' — reset to lobby: {reset.status_code}")
+        else:
+            print(f"[Arena] Already in lobby — no reset needed")
+    except Exception as e:
+        print(f"[Arena] Could not check/reset arena: {e}")
+
+
 def serve_and_register(
-    agent:      Agent,
-    arena_url:  str,
-    port:       int  = 5000,
-    ngrok_token: str = None,
+    agent:       Agent,
+    arena_url:   str,
+    port:        int  = 5000,
+    ngrok_token: str  = None,
+    admin_token: str  = None,
 ):
     """
     Start the agent server, expose it via ngrok, register with the arena.
+    Automatically resets the arena if a previous tournament is still running.
 
     Args:
         agent:       Your Agent instance
-        arena_url:   The arena backend URL  e.g. "http://1.2.3.4:8000"
+        arena_url:   The arena backend URL
         port:        Local Flask port (default 5000)
         ngrok_token: Your ngrok auth token (free at ngrok.com)
+        admin_token: Arena admin token — if provided, resets stale tournaments
     """
     import requests
+    import subprocess
+
+    # Kill any existing process on this port
+    subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
+
+    # Reset arena if needed
+    _reset_arena_if_needed(arena_url, admin_token)
 
     # Configure ngrok
     if ngrok_token:
@@ -186,7 +224,7 @@ def serve_and_register(
     t.start()
 
     # Open ngrok tunnel
-    tunnel = ngrok.connect(port, "http")
+    tunnel     = ngrok.connect(port, "http")
     public_url = tunnel.public_url
     print(f"\n{'='*55}")
     print(f"  Agent server running at: {public_url}")
@@ -209,9 +247,21 @@ def serve_and_register(
         print(f"\n  Waiting for organizer to accept you into the arena...\n")
     except Exception as e:
         print(f"  Could not reach arena at {arena_url}: {e}")
-        print(f"  Your server is running — try registering manually.")
+        print(f"  Your server is running -- try registering manually.")
 
-    # Keep alive
+    # Keepalive thread — pings arena every 30s to prevent ngrok tunnel drops
+    def _keepalive():
+        import time
+        while True:
+            time.sleep(30)
+            try:
+                requests.get(f"{arena_url}/health", timeout=5)
+            except Exception:
+                pass
+
+    threading.Thread(target=_keepalive, daemon=True).start()
+
+    # Keep main thread alive
     try:
         t.join()
     except KeyboardInterrupt:
