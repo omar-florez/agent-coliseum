@@ -468,7 +468,7 @@ function onState(p) {
       withScene(() => {
         if (!gameAgents[a.agent_id]) {
           const c = COLORS[colorCursor++ % COLORS.length];
-          if (!(p.agent_id in agentIndexMap)) agentIndexMap[p.agent_id] = agentIndexCursor++;
+          if (!(a.agent_id in agentIndexMap)) agentIndexMap[a.agent_id] = agentIndexCursor++;
           gameScene.spawnAgent(a.agent_id, a.name, a.avatar, c,
                                a.position.x, a.position.y);
         }
@@ -480,6 +480,7 @@ function onState(p) {
 
 function onAccepted(p) {
   const c = COLORS[colorCursor++ % COLORS.length];
+  if (!(p.agent_id in agentIndexMap)) agentIndexMap[p.agent_id] = agentIndexCursor++;
   withScene(() => {
     gameScene.spawnAgent(p.agent_id, p.name, p.avatar, c,
                          p.position.x, p.position.y);
