@@ -68,18 +68,22 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .card-score   .card-label{color:#F5C518;font-size:12px}
 .card-result  {background:#0d2b00;border-color:#3fb950;border-left-width:5px;white-space:pre-line}
 .card-result  .card-label{color:#3fb950;font-size:12px}
-.turn-card[data-agent-idx="0"].card-think   {background:#1a0d33}
-.turn-card[data-agent-idx="0"].card-question{background:#1e1400}
-.turn-card[data-agent-idx="0"].card-answer  {background:#001c1c}
-.turn-card[data-agent-idx="1"].card-think   {background:#0d1f33}
-.turn-card[data-agent-idx="1"].card-question{background:#1a0e00}
-.turn-card[data-agent-idx="1"].card-answer  {background:#00121c}
-.turn-card[data-agent-idx="2"].card-think   {background:#1a1a00}
-.turn-card[data-agent-idx="2"].card-question{background:#1a0020}
-.turn-card[data-agent-idx="2"].card-answer  {background:#001a10}
-.turn-card[data-agent-idx="3"].card-think   {background:#001a1a}
-.turn-card[data-agent-idx="3"].card-question{background:#1a1000}
-.turn-card[data-agent-idx="3"].card-answer  {background:#100020}
+/* Agent 0 — purple theme */
+.turn-card[data-agent-idx="0"].card-think,
+.turn-card[data-agent-idx="0"].card-question,
+.turn-card[data-agent-idx="0"].card-answer  {background:#1a0d33}
+/* Agent 1 — blue theme */
+.turn-card[data-agent-idx="1"].card-think,
+.turn-card[data-agent-idx="1"].card-question,
+.turn-card[data-agent-idx="1"].card-answer  {background:#0d1a33}
+/* Agent 2 — green theme */
+.turn-card[data-agent-idx="2"].card-think,
+.turn-card[data-agent-idx="2"].card-question,
+.turn-card[data-agent-idx="2"].card-answer  {background:#0d2200}
+/* Agent 3 — red theme */
+.turn-card[data-agent-idx="3"].card-think,
+.turn-card[data-agent-idx="3"].card-question,
+.turn-card[data-agent-idx="3"].card-answer  {background:#2a0d00}
 .scratchpad-step{margin-bottom:4px;font-size:12px;line-height:1.5}
 .scratchpad-label{font-weight:700;color:#8b949e;margin-right:4px}
 .scratchpad-text{color:#e6edf3}
