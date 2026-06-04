@@ -232,6 +232,25 @@ class Arena:
             self.agents[result.winner_id].wins  += 1
             self.agents[result.loser_id].losses += 1
 
+            # Broadcast clear match result summary
+            winner_agent = self.agents[result.winner_id]
+            loser_agent  = self.agents[result.loser_id]
+            await self.broadcast('match_result', {
+                'topic':   result.topic,
+                'winner': {
+                    'agent_id': winner_agent.agent_id,
+                    'name':     winner_agent.name,
+                    'avatar':   winner_agent.avatar,
+                    'score':    result.final_scores.get(result.winner_id, 0),
+                },
+                'loser': {
+                    'agent_id': loser_agent.agent_id,
+                    'name':     loser_agent.name,
+                    'avatar':   loser_agent.avatar,
+                    'score':    result.final_scores.get(result.loser_id, 0),
+                },
+            })
+
             # Eliminate the loser
             await self.eliminate_agent(result.loser_id)
 
