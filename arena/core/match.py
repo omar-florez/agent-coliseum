@@ -120,11 +120,18 @@ class MatchRunner:
             history.append(turn)
 
             await on_event("score", {
-                "turn":         turn_num,
-                "answerer_id":  answerer.agent_id,
-                "score":        score,
-                "reason":       reason,
+                "turn":           turn_num,
+                "answerer_id":    answerer.agent_id,
+                "answerer_name":  answerer.name,
+                "answerer_avatar": answerer.avatar,
+                "asker_id":       asker.agent_id,
+                "asker_name":     asker.name,
+                "asker_avatar":   asker.avatar,
+                "score":          score,
+                "reason":         reason,
                 "running_scores": scores,
+                "agent_names":    {asker.agent_id: asker.name, answerer.agent_id: answerer.name},
+                "agent_avatars":  {asker.agent_id: asker.avatar, answerer.agent_id: answerer.avatar},
             })
             await asyncio.sleep(0.2)
 

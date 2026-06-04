@@ -549,10 +549,22 @@ function onAnswer(p) {
 }
 
 function onScore(p) {
-  const scores = Object.entries(p.running_scores)
-    .map(([id, s]) => `${id.substring(0,4)}: ${s}pts`).join('  |  ');
+  const names   = p.agent_names   || {};
+  const avatars = p.agent_avatars || {};
+  let scoreLines = '';
+  for (const [id, pts] of Object.entries(p.running_scores)) {
+    const av   = avatars[id] || '';
+    const name = names[id]   || id.substring(0,4);
+    scoreLines += `${av} ${name}: ${pts} pts\n`;
+  }
+  // Find leading agent
+  const sorted = Object.entries(p.running_scores).sort((a,b) => b[1]-a[1]);
+  const leadId   = sorted[0][0];
+  const leadName = (avatars[leadId]||'') + ' ' + (names[leadId]||leadId.substring(0,4));
+  const isTied   = sorted.length > 1 && sorted[0][1] === sorted[1][1];
+  const leadLine = isTied ? 'Tied so far' : `Leading: ${leadName}`;
   addCard('score', '⭐ JUDGE', 'Judge', `Turn ${p.turn}`,
-    `${p.score}/10 — ${p.reason}\n\n${scores}`);
+    `${p.score}/10 — ${p.reason}\n\n${scoreLines.trim()}\n${leadLine}`);
 }
 
 function onMatchEnd(p) {
@@ -653,10 +665,11 @@ function formatScratchpad(raw) {
   const lines  = raw.split('\n');
   let out = '';
   for (const line of lines) {
-    const clean = line.replace(/\*\*/g,'').trim();
+    const clean = line.replace(/\*\*/g,'').replace(/^#+\s*/,'').trim();
     for (const step of steps) {
+      // Match step label at start of line (case-insensitive)
       if (clean.toUpperCase().startsWith(step)) {
-        let content = clean.slice(step.length).replace(/^\s*\[.*?\]\s*:?\s*/,'').replace(/^[:\s]+/,'').trim();
+        let content = clean.slice(step.length).replace(/^\s*\[.*?\]\s*[-:]*\s*/,'').replace(/^[-:\s]+/,'').trim();
         const dot = content.search(/[.!?]/);
         if (dot > 0) content = content.slice(0, dot+1);
         if (content) {
