@@ -58,14 +58,35 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 .card-agent .turn-badge{font-size:10px;color:#484f58}
 .card-text{font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto}
 
-.card-think   {background:#1a0d33;border-color:#9B8EC4}
+.card-think   {border-color:#9B8EC4}
 .card-think   .card-label{color:#9B8EC4}
-.card-question{background:#1e1400;border-color:#E8A838}
+.card-question{border-color:#E8A838}
 .card-question .card-label{color:#E8A838}
-.card-answer  {background:#001c1c;border-color:#4ABFBF}
+.card-answer  {border-color:#4ABFBF}
 .card-answer  .card-label{color:#4ABFBF}
 .card-score   {background:#2a1f00;border-color:#F5C518;border-left-width:5px}
 .card-score   .card-label{color:#F5C518;font-size:12px}
+.card-result  {background:#0d2b00;border-color:#3fb950;border-left-width:5px;white-space:pre-line}
+.card-result  .card-label{color:#3fb950;font-size:12px}
+/* Agent 0 — purple theme */
+.turn-card[data-agent-idx="0"].card-think,
+.turn-card[data-agent-idx="0"].card-question,
+.turn-card[data-agent-idx="0"].card-answer  {background:#1a0d33}
+/* Agent 1 — blue theme */
+.turn-card[data-agent-idx="1"].card-think,
+.turn-card[data-agent-idx="1"].card-question,
+.turn-card[data-agent-idx="1"].card-answer  {background:#0d1a33}
+/* Agent 2 — green theme */
+.turn-card[data-agent-idx="2"].card-think,
+.turn-card[data-agent-idx="2"].card-question,
+.turn-card[data-agent-idx="2"].card-answer  {background:#0d2200}
+/* Agent 3 — red theme */
+.turn-card[data-agent-idx="3"].card-think,
+.turn-card[data-agent-idx="3"].card-question,
+.turn-card[data-agent-idx="3"].card-answer  {background:#2a0d00}
+.scratchpad-step{margin-bottom:4px;font-size:12px;line-height:1.5}
+.scratchpad-label{font-weight:700;color:#8b949e;margin-right:4px}
+.scratchpad-text{color:#e6edf3}
 
 /* ── leaderboard ── */
 #leaderboard{background:#0d1117;border-top:1px solid #21262d;padding:10px 20px;flex-shrink:0}
@@ -167,6 +188,8 @@ const COLORS = [
 
 const gameAgents = {};         // agentId → Phaser objects
 let   colorCursor   = 0;
+const agentIndexMap = {};
+let   agentIndexCursor = 0;
 let   gameScene     = null;
 let   sseSource     = null;
 let   maxScore      = 1;
@@ -432,6 +455,7 @@ function route(type, payload) {
     case 'answer':            onAnswer(payload);          break;
     case 'score':             onScore(payload);           break;
     case 'match_end':         onMatchEnd(payload);        break;
+    case 'match_result':      onMatchResult(payload);     break;
     case 'phase_change':      onPhase(payload.phase);     break;
     case 'leaderboard_update':onLeaderboard(payload);     break;
     case 'tournament_ended':  onTournamentEnd(payload);   break;
@@ -448,6 +472,7 @@ function onState(p) {
       withScene(() => {
         if (!gameAgents[a.agent_id]) {
           const c = COLORS[colorCursor++ % COLORS.length];
+          if (!(a.agent_id in agentIndexMap)) agentIndexMap[a.agent_id] = agentIndexCursor++;
           gameScene.spawnAgent(a.agent_id, a.name, a.avatar, c,
                                a.position.x, a.position.y);
         }
@@ -459,6 +484,7 @@ function onState(p) {
 
 function onAccepted(p) {
   const c = COLORS[colorCursor++ % COLORS.length];
+  if (!(p.agent_id in agentIndexMap)) agentIndexMap[p.agent_id] = agentIndexCursor++;
   withScene(() => {
     gameScene.spawnAgent(p.agent_id, p.name, p.avatar, c,
                          p.position.x, p.position.y);
@@ -500,7 +526,7 @@ function onMatchStart(p) {
 
 function onThinking(p) {
   addCard('think', '🧠 THINKING', p.agent_name, `Turn ${p.turn}/${document._totalTurns||5}`,
-    'Analyzing match state and formulating strategy…');
+    'Thinking...', p.agent_id);
   withScene(() => gameScene.showBubble(p.agent_id, '🧠…', 0x6b5ea0, 0));
 }
 
@@ -509,25 +535,36 @@ function onQuestion(p) {
   const cards = document.getElementById('turn-cards');
   const last = cards.lastElementChild;
   if (last && last.dataset.type === 'think') {
-    last.querySelector('.card-text').textContent =
-      (p.scratchpad || '').substring(0, 600) || 'Thinking…';
+    last.querySelector('.card-text').innerHTML = formatScratchpad(p.scratchpad || '') || 'Thinking...';
   }
-  addCard('question', '❓ QUESTION', p.asker_name, `Turn ${p.turn}`, p.question);
+  addCard('question', '❓ QUESTION', p.asker_name, `Turn ${p.turn}`, p.question, p.asker_id);
   withScene(() => gameScene.showBubble(p.asker_id,
     '❓ ' + p.question.substring(0, 60), 0xb07d1a, 0));
 }
 
 function onAnswer(p) {
-  addCard('answer', '💬 ANSWER', p.answerer_name, `Turn ${p.turn}`, p.answer);
+  addCard('answer', '💬 ANSWER', p.answerer_name, `Turn ${p.turn}`, p.answer, p.answerer_id);
   withScene(() => gameScene.showBubble(p.answerer_id,
     '💬 ' + p.answer.substring(0, 60), 0x2a7a7a, 0));
 }
 
 function onScore(p) {
-  const scores = Object.entries(p.running_scores)
-    .map(([id, s]) => `${id.substring(0,4)}: ${s}pts`).join('  |  ');
+  const names   = p.agent_names   || {};
+  const avatars = p.agent_avatars || {};
+  let scoreLines = '';
+  for (const [id, pts] of Object.entries(p.running_scores)) {
+    const av   = avatars[id] || '';
+    const name = names[id]   || id.substring(0,4);
+    scoreLines += `${av} ${name}: ${pts} pts\n`;
+  }
+  // Find leading agent
+  const sorted = Object.entries(p.running_scores).sort((a,b) => b[1]-a[1]);
+  const leadId   = sorted[0][0];
+  const leadName = (avatars[leadId]||'') + ' ' + (names[leadId]||leadId.substring(0,4));
+  const isTied   = sorted.length > 1 && sorted[0][1] === sorted[1][1];
+  const leadLine = isTied ? 'Tied so far' : `Leading: ${leadName}`;
   addCard('score', '⭐ JUDGE', 'Judge', `Turn ${p.turn}`,
-    `${p.score}/10 — ${p.reason}\n\n${scores}`);
+    `${p.score}/10 — ${p.reason}\n\n${scoreLines.trim()}\n${leadLine}`);
 }
 
 function onMatchEnd(p) {
@@ -539,6 +576,12 @@ function onMatchEnd(p) {
     currentMatchIds = null;
   }
   // Keep match history visible — do not clear on match end
+}
+
+function onMatchResult(p) {
+  const w = p.winner, l = p.loser;
+  const text = w.avatar+' '+w.name+' scored '+w.score+' pts\n'+l.avatar+' '+l.name+' scored '+l.score+' pts\n\nWinner: '+w.avatar+' '+w.name;
+  addCard('result', '🏆 MATCH RESULT', 'Arena', p.topic||'', text);
 }
 
 function onPhase(phase) {
@@ -599,18 +642,44 @@ function onTournamentEnd(p) {
 // ═══════════════════════════════════════════════════════
 //  UI HELPERS
 // ═══════════════════════════════════════════════════════
-function addCard(type, label, agent, turn, text) {
+function addCard(type, label, agent, turn, text, agentId) {
   const cards = document.getElementById('turn-cards');
   const div = document.createElement('div');
   div.className = `turn-card card-${type}`;
   div.dataset.type = type;
+  if (agentId && agentId in agentIndexMap) {
+    div.dataset.agentIdx = agentIndexMap[agentId];
+  }
   div.innerHTML = `
     <div class="card-label">${label}</div>
     <div class="card-agent"><span class="agent-name-badge">${esc(agent)}</span><span class="turn-badge">${esc(turn)}</span></div>
     <div class="card-text">${esc(text)}</div>`;
   cards.appendChild(div);
-  // All turns kept for post-match analysis
   div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function formatScratchpad(raw) {
+  if (!raw) return '';
+  const steps = ['SITUATION','OPPONENT','GOAL','DRAFT','CRITIQUE','FINAL'];
+  const icons  = {SITUATION:'&#128269;',OPPONENT:'&#128100;',GOAL:'&#127919;',DRAFT:'&#9999;&#65039;',CRITIQUE:'&#128260;',FINAL:'&#9989;'};
+  const lines  = raw.split('\n');
+  let out = '';
+  for (const line of lines) {
+    const clean = line.replace(/\*\*/g,'').replace(/^#+\s*/,'').trim();
+    for (const step of steps) {
+      // Match step label at start of line (case-insensitive)
+      if (clean.toUpperCase().startsWith(step)) {
+        let content = clean.slice(step.length).replace(/^\s*\[.*?\]\s*[-:]*\s*/,'').replace(/^[-:\s]+/,'').trim();
+        const dot = content.search(/[.!?]/);
+        if (dot > 0) content = content.slice(0, dot+1);
+        if (content) {
+          out += '<div class="scratchpad-step"><span class="scratchpad-label">' + (icons[step]||'') + ' ' + step + '</span><span class="scratchpad-text"> ' + esc(content) + '</span></div>';
+        }
+        break;
+      }
+    }
+  }
+  return out || esc(raw.substring(0,300));
 }
 
 function setCount(n) {
