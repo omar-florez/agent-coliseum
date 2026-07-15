@@ -155,7 +155,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf
 </div>
 
 <div id="leaderboard">
-  <div id="lb-label">📊 LEADERBOARD</div>
+  <div id="lb-label">📊 LEADERBOARD <button id="lb-download" onclick="downloadLeaderboard()" title="Download leaderboard as TXT" style="margin-left:8px;padding:2px 8px;font-size:11px;background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:4px;cursor:pointer;">⬇ Save</button></div>
   <div id="lb-rows"></div>
 </div>
 
@@ -590,8 +590,11 @@ function onPhase(phase) {
   badge.className   = phase;
 }
 
+let _lastLeaderboard = [];
+
 function onLeaderboard(p) {
   const agents = p.agents || [];
+  _lastLeaderboard = agents;
   if (!agents.length) return;
   maxScore = Math.max(maxScore, ...agents.map(a => a.score || 0), 1);
 
@@ -615,6 +618,40 @@ function onLeaderboard(p) {
       <span class="lb-record">${a.wins}W/${a.losses}L</span>`;
     rows.appendChild(row);
   });
+}
+
+
+function downloadLeaderboard() {
+  if (!_lastLeaderboard.length) {
+    alert('No leaderboard data yet.');
+    return;
+  }
+  const now     = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const ranks   = ['1st', '2nd', '3rd'];
+  let lines = [
+    'AGENT COLISEUM — LEADERBOARD',
+    `Exported: ${now}`,
+    '',
+    'Rank  Avatar  Name                    Score   Record  Status',
+    '─'.repeat(60),
+  ];
+  _lastLeaderboard.forEach((a, i) => {
+    const rank   = ranks[i] || `${i+1}th`;
+    const status = a.status === 'eliminated' ? 'ELIMINATED' : 'ACTIVE';
+    const name   = (a.name || '').padEnd(22).substring(0, 22);
+    const score  = String(a.score || 0).padStart(5);
+    const record = `${a.wins}W/${a.losses}L`.padEnd(6);
+    lines.push(`${rank.padEnd(5)} ${a.avatar}  ${name}  ${score}   ${record}  ${status}`);
+  });
+  lines.push('─'.repeat(60));
+
+  const blob = new Blob([lines.join('\n')], {type: 'text/plain'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `leaderboard_${now.replace(/[: ]/g, '-')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function onTournamentEnd(p) {
